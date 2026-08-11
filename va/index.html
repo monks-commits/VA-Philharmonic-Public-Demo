@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>VA → Philharmonic Gateway Demo</title>
+<style>
+:root{
+  --ink:#172c3b;--muted:#6c7d88;--line:#dbe7ed;--blue:#1f73d8;
+  --soft:#f4f8fa;--ok:#15803d;--warn:#d97706;--bad:#b42318;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#eef3f6;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{min-height:100vh}
+.wrap{width:min(1480px,100%);margin:0 auto;padding:20px}
+.header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:14px}
+.brand{font-size:13px;font-weight:950;letter-spacing:.09em;color:#0b62aa}
+h1{margin:4px 0 4px;font-size:30px;line-height:1.05}
+.sub{color:var(--muted);font-size:14px}
+.badge{padding:9px 13px;border-radius:999px;background:#eaf8ef;color:#166534;font-weight:900;font-size:13px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 28px rgba(31,70,88,.06)}
+.topbar{padding:14px;display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:10px;margin-bottom:14px}
+select,button{min-height:46px;border-radius:12px;border:1px solid #cbdce5;font:inherit}
+select{background:#fff;padding:0 12px;font-weight:800;color:var(--ink)}
+button{padding:0 18px;background:#fff;font-weight:900;cursor:pointer}
+button.primary{border:0;background:var(--blue);color:#fff}
+button:disabled{opacity:.5;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px}
+.hallpanel{padding:14px}
+.hallhead{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+.halltitle{font-weight:950;font-size:19px}.hallmeta{color:var(--muted);font-size:13px}
+.legend{display:flex;flex-wrap:wrap;gap:10px;color:var(--muted);font-size:12px}
+.dot{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.dot.free{background:#fff;border:1px solid #9cb3bf}.dot.mine{background:#1f73d8}.dot.busy{background:#adb9bf}.dot.sold{background:#3c4650}
+.viewport{position:relative;width:100%;aspect-ratio:4/3;overflow:auto;background:#fbfdfe;border:1px solid #e4edf1;border-radius:14px}
+.stage{position:relative;width:1200px;height:900px;transform-origin:top left}
+.decor{position:absolute;display:flex;align-items:center;justify-content:center;white-space:pre-wrap;pointer-events:none}
+.seat{position:absolute;border:1px solid rgba(23,44,59,.28);border-radius:4px;cursor:pointer;transition:transform .08s ease,box-shadow .08s ease}
+.seat:hover{transform:scale(1.45);z-index:1000;box-shadow:0 0 0 3px rgba(31,115,216,.16)}
+.seat.available{background:var(--seat-color,#fff)}
+.seat.mine{background:#1f73d8!important;border-color:#0c4ea2;box-shadow:0 0 0 3px rgba(31,115,216,.17)}
+.seat.hold,.seat.reserved{background:#adb9bf!important;cursor:not-allowed}
+.seat.sold{background:#3c4650!important;cursor:not-allowed}
+.seat.blocked{background:#e6ebee!important;cursor:not-allowed}
+.side{display:grid;gap:14px;align-content:start}
+.card{padding:16px}
+.card h2{margin:0 0 12px;font-size:18px}
+.kv{display:grid;grid-template-columns:115px 1fr;gap:8px 10px;font-size:13px;margin-bottom:7px}
+.k{color:var(--muted)}.v{font-weight:800;word-break:break-word}
+.route{padding:12px;border-radius:12px;background:#f5f9fc;border:1px solid #dce9f0;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px;line-height:1.6}
+.route b{font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.status{padding:12px;border-radius:12px;background:#f6f8f9;border:1px solid #e0e7ea;font-size:13px;line-height:1.5}
+.status.ok{background:#edf9f2;border-color:#bee7cf;color:#166534}
+.status.warn{background:#fff8e8;border-color:#efd99d;color:#8a5a00}
+.status.bad{background:#fff0ef;border-color:#efc2be;color:#98251f}
+.selection{font-size:24px;font-weight:950;margin:5px 0}
+.price{font-size:18px;font-weight:900}
+.actions{display:grid;gap:9px;margin-top:12px}
+.small{font-size:12px;color:var(--muted);line-height:1.5}
+.ms{font-size:30px;font-weight:950}
+.log{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px;max-height:180px;overflow:auto;white-space:pre-wrap;background:#0f1720;color:#d9e7ef;padding:10px;border-radius:12px}
+@media(max-width:980px){
+  .grid{grid-template-columns:1fr}
+  .side{grid-template-columns:1fr 1fr}
+}
+@media(max-width:650px){
+  .wrap{padding:10px}.header{display:block}.badge{display:inline-block;margin-top:10px}
+  .topbar{grid-template-columns:1fr}.side{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div>
+      <div class="brand">VA • ЗОВНІШНІЙ ОПЕРАТОР</div>
+      <h1>Продаж через Gateway Філармонії</h1>
+      <div class="sub">Ця сторінка не читає базу Філармонії напряму.</div>
+    </div>
+    <div id="onlineBadge" class="badge">● VA SERVER</div>
+  </div>
+
+  <div class="panel topbar">
+    <select id="seanceSelect"><option>Завантаження сеансів…</option></select>
+    <button id="refreshBtn" class="primary">Оновити</button>
+  </div>
+
+  <div class="grid">
+    <section class="panel hallpanel">
+      <div class="hallhead">
+        <div>
+          <div id="hallTitle" class="halltitle">Зал</div>
+          <div id="hallMeta" class="hallmeta"></div>
+        </div>
+        <div class="legend">
+          <span><i class="dot free"></i>вільне</span>
+          <span><i class="dot mine"></i>VA hold</span>
+          <span><i class="dot busy"></i>утримується</span>
+          <span><i class="dot sold"></i>продано</span>
+        </div>
+      </div>
+      <div id="viewport" class="viewport">
+        <div id="stage" class="stage"></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="panel card">
+        <h2>Маршрут</h2>
+        <div class="route">
+          <b>Браузер VA</b><br>
+          ↓<br>
+          <b>VA server</b> <span id="vaHost"></span><br>
+          ↓ secret<br>
+          <b>Gateway Філармонії</b><br>
+          ↓ connector V5<br>
+          <b>БД Філармонії</b>
+        </div>
+        <div class="small" style="margin-top:9px">У браузері немає gateway-secret і немає доступу до таблиць Філармонії.</div>
+      </div>
+
+      <div class="panel card">
+        <h2>Вибір VA</h2>
+        <div id="selectionText" class="selection">—</div>
+        <div id="selectionPrice" class="price"></div>
+        <div class="actions">
+          <button id="releaseBtn" disabled>Зняти VA hold</button>
+        </div>
+        <div id="statusBox" class="status">Оберіть вільне місце на схемі.</div>
+      </div>
+
+      <div class="panel card">
+        <h2>Gateway telemetry</h2>
+        <div class="kv"><div class="k">Операція</div><div id="opValue" class="v">—</div></div>
+        <div class="kv"><div class="k">Результат</div><div id="resultValue" class="v">—</div></div>
+        <div class="kv"><div class="k">Response</div><div id="codeValue" class="v">—</div></div>
+        <div class="kv"><div class="k">VA round-trip</div><div class="v"><span id="msValue" class="ms">—</span> ms</div></div>
+        <div class="kv"><div class="k">hold_ref</div><div id="holdRefValue" class="v"></div></div>
+      </div>
+
+      <div class="panel card">
+        <h2>Журнал</h2>
+        <div id="log" class="log"></div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+const VA_CLIENT_URL =
+  "https://fhusjlkneckbvnrdhbil.supabase.co/functions/v1/philharmonic-gateway-client";
+
+const seanceSelect = document.getElementById("seanceSelect");
+const refreshBtn = document.getElementById("refreshBtn");
+const stage = document.getElementById("stage");
+const viewport = document.getElementById("viewport");
+const hallTitle = document.getElementById("hallTitle");
+const hallMeta = document.getElementById("hallMeta");
+const selectionText = document.getElementById("selectionText");
+const selectionPrice = document.getElementById("selectionPrice");
+const releaseBtn = document.getElementById("releaseBtn");
+const statusBox = document.getElementById("statusBox");
+const opValue = document.getElementById("opValue");
+const resultValue = document.getElementById("resultValue");
+const codeValue = document.getElementById("codeValue");
+const msValue = document.getElementById("msValue");
+const holdRefValue = document.getElementById("holdRefValue");
+const logEl = document.getElementById("log");
+const vaHost = document.getElementById("vaHost");
+
+vaHost.textContent = new URL(VA_CLIENT_URL).host;
+
+let currentState = null;
+let currentSeanceId = "";
+let selectedKey = "";
+let busy = false;
+
+function log(text) {
+  const t = new Date().toLocaleTimeString("uk-UA", {
+    hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"
+  });
+  logEl.textContent = `[${t}] ${text}\n` + logEl.textContent;
+}
+
+function holdStorageKey() {
+  return `va-philharmonic-hold-ref:${currentSeanceId}`;
+}
+
+function getHoldRef() {
+  let value = localStorage.getItem(holdStorageKey());
+  if (!value) {
+    value = crypto.randomUUID();
+    localStorage.setItem(holdStorageKey(), value);
+  }
+  holdRefValue.textContent = value;
+  return value;
+}
+
+function rotateHoldRef() {
+  const value = crypto.randomUUID();
+  localStorage.setItem(holdStorageKey(), value);
+  holdRefValue.textContent = value;
+  return value;
+}
+
+function fmtDate(d) {
+  if (!d) return "";
+  return new Intl.DateTimeFormat("uk-UA",{
+    day:"2-digit",month:"2-digit",year:"numeric"
+  }).format(new Date(`${d}T00:00:00`));
+}
+function fmtTime(t){return String(t||"").slice(0,5)}
+function money(n){return `${Number(n||0).toLocaleString("uk-UA")} грн`}
+
+function setStatus(text, kind="") {
+  statusBox.className = "status" + (kind ? ` ${kind}` : "");
+  statusBox.textContent = text;
+}
+
+function setTelemetry(action, payload, fallbackMs) {
+  opValue.textContent = action || "—";
+  resultValue.textContent = payload?.result ?? (payload?.ok ? "ok" : "—");
+  codeValue.textContent = payload?.response_code ?? payload?.error ?? "—";
+  msValue.textContent = payload?.duration_ms ?? fallbackMs ?? "—";
+}
+
+async function getJson(url) {
+  const started = performance.now();
+  const res = await fetch(url, {cache:"no-store"});
+  const data = await res.json();
+  const ms = Number((performance.now()-started).toFixed(1));
+  if (!res.ok || !data?.ok) {
+    throw Object.assign(new Error(data?.error || `http_${res.status}`), {data, ms});
+  }
+  return {data, ms};
+}
+
+async function postJson(body) {
+  const started = performance.now();
+  const res = await fetch(VA_CLIENT_URL, {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(body)
+  });
+  const data = await res.json();
+  const ms = Number((performance.now()-started).toFixed(1));
+  if (!res.ok || !data?.ok) {
+    throw Object.assign(new Error(data?.error || `http_${res.status}`), {data, ms});
+  }
+  return {data, ms};
+}
+
+async function loadSeances() {
+  seanceSelect.innerHTML = `<option>Завантаження…</option>`;
+  const {data, ms} = await getJson(`${VA_CLIENT_URL}?action=seances`);
+  setTelemetry("seances", data, ms);
+
+  seanceSelect.innerHTML = "";
+  for (const s of data.seances || []) {
+    const opt = document.createElement("option");
+    opt.value = s.id;
+    opt.textContent = `${fmtDate(s.date)} • ${fmtTime(s.time)} • ${s.show} • ${s.hall_id}`;
+    seanceSelect.appendChild(opt);
+  }
+
+  if (!seanceSelect.options.length) {
+    seanceSelect.innerHTML = `<option value="">Немає опублікованих сеансів</option>`;
+    return;
+  }
+
+  const wanted = new URLSearchParams(location.search).get("seance");
+  if (wanted && [...seanceSelect.options].some(o => o.value === wanted)) {
+    seanceSelect.value = wanted;
+  }
+
+  currentSeanceId = seanceSelect.value;
+  getHoldRef();
+  log(`seances: ${data.count ?? data.seances?.length ?? 0}; ${ms} ms`);
+  await loadState();
+}
+
+async function loadState() {
+  if (!currentSeanceId) return;
+  busy = true;
+  refreshBtn.disabled = true;
+
+  try {
+    const holdRef = getHoldRef();
+    const url = `${VA_CLIENT_URL}?action=state&seance_id=${encodeURIComponent(currentSeanceId)}&hold_ref=${encodeURIComponent(holdRef)}`;
+    const {data, ms} = await getJson(url);
+    setTelemetry("state", data, ms);
+
+    if (data.result !== "succeeded" || !data.payload) {
+      throw new Error(data.response_code || "state_failed");
+    }
+
+    currentState = data.payload;
+    renderAll();
+    log(`state ${currentSeanceId}: ${data.response_code}; ${ms} ms`);
+  } catch (e) {
+    console.error(e);
+    setStatus(`Помилка state: ${e.message}`, "bad");
+    log(`ERROR state: ${e.message}`);
+  } finally {
+    busy = false;
+    refreshBtn.disabled = false;
+  }
+}
+
+function renderAll() {
+  const st = currentState || {};
+  hallTitle.textContent = st.hall?.name || "Зал";
+  hallMeta.textContent = [
+    st.seance?.show,
+    fmtDate(st.seance?.date),
+    fmtTime(st.seance?.time),
+    `місць ${st.hall?.official_capacity ?? st.geometry?.seat_count ?? "—"}`
+  ].filter(Boolean).join(" • ");
+
+  const mine = (st.seats || []).filter(s => s.state === "mine");
+  selectedKey = mine[0]?.seat_key || "";
+
+  if (selectedKey) {
+    const row = (st.seats || []).find(s => s.seat_key === selectedKey);
+    selectionText.textContent = selectedKey;
+    selectionPrice.textContent = money(row?.price);
+    releaseBtn.disabled = false;
+    setStatus("Місце утримується VA через Gateway.", "ok");
+  } else {
+    selectionText.textContent = "—";
+    selectionPrice.textContent = "";
+    releaseBtn.disabled = true;
+    setStatus("Оберіть вільне місце на схемі.");
+  }
+
+  renderGeometry();
+}
+
+function renderGeometry() {
+  stage.innerHTML = "";
+  const g = currentState?.geometry || {};
+  const width = Number(g.width || 1200);
+  const height = Number(g.height || 900);
+  stage.style.width = `${width}px`;
+  stage.style.height = `${height}px`;
+
+  const stateMap = new Map(
+    (currentState?.seats || []).map(s => [s.seat_key, s])
+  );
+
+  for (const d of g.decor || []) {
+    const el = document.createElement("div");
+    el.className = "decor";
+    el.style.left = `${Number(d.x || 0)}px`;
+    el.style.top = `${Number(d.y || 0)}px`;
+    if (Number(d.w || 0)) el.style.width = `${Number(d.w)}px`;
+    if (Number(d.h || 0)) el.style.height = `${Number(d.h)}px`;
+    if (d.fill) el.style.background = d.fill;
+    if (d.color || d.textColor) el.style.color = d.textColor || d.color;
+    if (d.borderColor) el.style.border = `1px solid ${d.borderColor}`;
+    if (d.size) el.style.fontSize = `${d.size}px`;
+    if (d.fontWeight) el.style.fontWeight = d.fontWeight;
+    if (d.rotate) el.style.transform = `rotate(${d.rotate}deg)`;
+    el.textContent = d.text || "";
+    stage.appendChild(el);
+  }
+
+  for (const seat of g.seats || []) {
+    const row = stateMap.get(seat.seat_key) || {};
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = `seat ${row.state || "blocked"}`;
+    el.style.left = `${Number(seat.x || 0)}px`;
+    el.style.top = `${Number(seat.y || 0)}px`;
+    el.style.width = `${Math.max(12,Number(seat.w || 15))}px`;
+    el.style.height = `${Math.max(12,Number(seat.h || 15))}px`;
+    el.style.setProperty("--seat-color", row.color || "#fff");
+    if (seat.rotate) el.style.transform = `rotate(${seat.rotate}deg)`;
+    el.title = `${seat.seat_key} • ${money(row.price)} • ${row.state || "?"}`;
+
+    if (row.state === "available" && row.sale_enabled !== false) {
+      el.addEventListener("click", () => createHold(seat.seat_key));
+    } else if (row.state === "mine") {
+      el.addEventListener("click", releaseHold);
+    } else {
+      el.disabled = true;
+    }
+
+    stage.appendChild(el);
+  }
+
+  requestAnimationFrame(fitStage);
+}
+
+function fitStage() {
+  const g = currentState?.geometry || {};
+  const width = Number(g.width || 1200);
+  const height = Number(g.height || 900);
+  const available = viewport.clientWidth - 4;
+  const scale = Math.min(1, available / width);
+
+  stage.style.transform = `scale(${scale})`;
+  viewport.style.height = `${Math.max(420, height * scale + 4)}px`;
+}
+
+async function createHold(seatKey) {
+  if (busy) return;
+
+  // V3 demo page intentionally keeps one VA-held seat at a time.
+  if (selectedKey) {
+    setStatus("Спочатку зніміть поточний VA hold.", "warn");
+    return;
+  }
+
+  busy = true;
+  setStatus(`VA надсилає hold для ${seatKey} через Gateway…`, "warn");
+
+  try {
+    const holdRef = getHoldRef();
+    const {data, ms} = await postJson({
+      action:"hold",
+      seance_id:currentSeanceId,
+      hold_ref:holdRef,
+      seat_keys:[seatKey]
+    });
+
+    setTelemetry("hold", data, ms);
+    log(`hold ${seatKey}: ${data.result}/${data.response_code}; ${ms} ms`);
+
+    if (data.result !== "succeeded") {
+      setStatus(`Місце не отримано: ${data.response_code || data.failure_code || "rejected"}`, "bad");
+      await loadState();
+      return;
+    }
+
+    await loadState();
+  } catch (e) {
+    console.error(e);
+    setTelemetry("hold", e.data, e.ms);
+    setStatus(`Помилка hold: ${e.message}`, "bad");
+    log(`ERROR hold ${seatKey}: ${e.message}`);
+    await loadState();
+  } finally {
+    busy = false;
+  }
+}
+
+async function releaseHold() {
+  if (busy || !selectedKey) return;
+
+  busy = true;
+  const oldKey = selectedKey;
+  setStatus(`VA знімає hold ${oldKey} через Gateway…`, "warn");
+
+  try {
+    const holdRef = getHoldRef();
+    const {data, ms} = await postJson({
+      action:"release",
+      seance_id:currentSeanceId,
+      hold_ref:holdRef
+    });
+
+    setTelemetry("release", data, ms);
+    log(`release ${oldKey}: ${data.result}/${data.response_code}; ${ms} ms`);
+
+    if (data.result === "succeeded") {
+      rotateHoldRef();
+    }
+
+    await loadState();
+  } catch (e) {
+    console.error(e);
+    setTelemetry("release", e.data, e.ms);
+    setStatus(`Помилка release: ${e.message}`, "bad");
+    log(`ERROR release ${oldKey}: ${e.message}`);
+    await loadState();
+  } finally {
+    busy = false;
+  }
+}
+
+seanceSelect.addEventListener("change", async () => {
+  currentSeanceId = seanceSelect.value;
+  selectedKey = "";
+  getHoldRef();
+
+  const u = new URL(location.href);
+  u.searchParams.set("seance", currentSeanceId);
+  history.replaceState(null,"",u);
+
+  await loadState();
+});
+
+refreshBtn.addEventListener("click", loadState);
+releaseBtn.addEventListener("click", releaseHold);
+window.addEventListener("resize", fitStage);
+
+loadSeances().catch(e => {
+  console.error(e);
+  setStatus(`Не вдалося завантажити сеанси: ${e.message}`, "bad");
+  log(`FATAL: ${e.message}`);
+});
+})();
+</script>
+</body>
+</html>
