@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Вибір місць — Дніпровська філармонія</title>
+  <!-- Philharmonic Hall Client Demo V1 / 2026-08-09 -->
+
+  <style>
+    :root {
+      --blue: #1598d2;
+      --blue-dark: #0875aa;
+      --ink: #173042;
+      --muted: #637987;
+      --line: #d8e8f0;
+      --soft: #eef8fc;
+      --danger: #d92d20;
+      --warning: #f79009;
+      --taken: #a8b4bc;
+      --card: #ffffff;
+      --shadow: 0 14px 38px rgba(32, 93, 119, .10);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    button, input { font: inherit; }
+
+    .page {
+      width: min(1500px, 100%);
+      margin: 0 auto;
+      padding: 18px 16px 36px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      flex-wrap: wrap;
+      border-bottom: 1px solid var(--line);
+      padding: 4px 0 18px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      background: var(--soft);
+      color: var(--blue-dark);
+      font-size: 25px;
+      font-weight: 900;
+    }
+
+    .eyebrow {
+      color: var(--blue-dark);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 3px 0 0;
+      font-size: clamp(24px, 4vw, 38px);
+      line-height: 1.08;
+    }
+
+    .event-meta {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .status-pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      padding: 10px 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .hall-card,
+    .summary-card {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .hall-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .hall-head h2,
+    .summary-card h2 {
+      margin: 0;
+      font-size: 19px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 13px;
+      height: 13px;
+      border-radius: 4px;
+      border: 1px solid #bcd1dc;
+      background: #fff;
+    }
+
+    .dot.mine { background: var(--blue); border-color: var(--blue-dark); }
+    .dot.hold { background: var(--warning); border-color: var(--warning); }
+    .dot.taken { background: var(--taken); border-color: var(--taken); }
+    .dot.closed { background: #e9eef1; border-color: #d3dde2; }
+
+    .hall-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tool-btn {
+      width: 38px;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .tool-btn:hover { background: var(--soft); }
+
+    .viewport {
+      position: relative;
+      overflow: auto;
+      min-height: 520px;
+      max-height: 78vh;
+      background:
+        linear-gradient(#f9fcfd, #fff);
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .scaled-stage {
+      position: relative;
+      transform-origin: top left;
+    }
+
+    .scene {
+      position: relative;
+      width: 1200px;
+      height: 900px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .decor-text {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #26495d;
+      font-weight: 800;
+      line-height: 1.05;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .decor-stage {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 0 0 44% 44%;
+      background: linear-gradient(180deg, #8ed5ef, #1598d2);
+      color: #fff;
+      font-weight: 900;
+      letter-spacing: .08em;
+      box-shadow: 0 8px 20px rgba(21, 152, 210, .18);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .seat {
+      position: absolute;
+      border: 1px solid rgba(17, 48, 66, .30);
+      border-radius: 4px;
+      padding: 0;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+      transition: transform .08s ease, outline .08s ease, opacity .08s ease;
+    }
+
+    .seat:hover:not(:disabled) {
+      transform: scale(1.28);
+      z-index: 1000 !important;
+    }
+
+    .seat.mine {
+      background: var(--blue) !important;
+      border-color: var(--blue-dark);
+      outline: 2px solid rgba(21, 152, 210, .30);
+    }
+
+    .seat.hold {
+      background: var(--warning) !important;
+      border-color: #c76f00;
+      cursor: not-allowed;
+    }
+
+    .seat.sold,
+    .seat.reserved,
+    .seat.blocked {
+      background: var(--taken) !important;
+      border-color: #89979f;
+      cursor: not-allowed;
+      opacity: .75;
+    }
+
+    .seat.not-for-sale {
+      background: #edf1f3 !important;
+      border-color: #d4dde2;
+      cursor: not-allowed;
+      opacity: .55;
+    }
+
+    .summary-card {
+      position: sticky;
+      top: 16px;
+      padding: 18px;
+    }
+
+    .summary-list {
+      margin: 14px 0;
+      display: grid;
+      gap: 8px;
+      max-height: 330px;
+      overflow: auto;
+    }
+
+    .summary-empty {
+      color: var(--muted);
+      padding: 14px 0;
+      line-height: 1.45;
+    }
+
+    .summary-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid #edf3f6;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+
+    .remove-seat {
+      border: 0;
+      background: transparent;
+      color: var(--danger);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .total {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+      margin-top: 10px;
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    .hold-timer {
+      min-height: 22px;
+      margin: 10px 0;
+      color: var(--blue-dark);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .primary,
+    .secondary {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .primary {
+      border: 0;
+      background: var(--blue);
+      color: #fff;
+    }
+
+    .primary:disabled {
+      background: #a8c7d4;
+      cursor: not-allowed;
+    }
+
+    .secondary {
+      margin-top: 9px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .message {
+      min-height: 22px;
+      margin-top: 12px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .message.error { color: var(--danger); }
+
+    .loading {
+      display: grid;
+      place-items: center;
+      min-height: 520px;
+      color: var(--muted);
+      text-align: center;
+      padding: 30px;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .summary-card {
+        position: sticky;
+        bottom: 0;
+        top: auto;
+        z-index: 2000;
+        border-radius: 18px 18px 0 0;
+      }
+
+      .viewport {
+        min-height: 430px;
+        max-height: 68vh;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page { padding: 12px 8px 22px; }
+      .hero { padding-inline: 6px; }
+      .hall-head { padding: 11px; }
+      .legend { font-size: 11px; }
+      .summary-card { padding: 14px; }
+    }
+  
+
+    /* ===== PHILHARMONIC HALL VIEWER V2 =====
+       Один viewer для любой Hall Studio JSON-геометрии.
+       Никаких отдельных рендеров под конкретный зал. */
+    .viewport {
+      overflow: hidden !important;
+      height: clamp(520px, 72vh, 900px);
+      max-height: none !important;
+      touch-action: none;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .viewport.dragging { cursor: grabbing; }
+
+    .scaled-stage {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    .scene {
+      position: relative;
+      transform: none !important;
+    }
+
+    /* ===== PHILHARMONIC VISUAL ENGINE =====
+       В Client Demo V1 подсистема присутствует, но не активируется. */
+    #ph-visual-image-bg,
+    #ph-visual-video-bg,
+    #ph-visual-overlay-bg {
+      position: fixed;
+      pointer-events: none;
+    }
+
+    #ph-visual-image-bg,
+    #ph-visual-video-bg {
+      left: 50%;
+      top: 50%;
+      z-index: 0;
+    }
+
+    #ph-visual-overlay-bg {
+      inset: 0;
+      z-index: 1;
+      background: #000;
+    }
+
+    body.ph-visual-active .page {
+      position: relative;
+      z-index: 2;
+    }
+
+    body.ph-visual-active .hall-card,
+    body.ph-visual-active .summary-card,
+    body.ph-visual-active .status-pill {
+      background: rgba(255,255,255,.90);
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+    }
+
+    .ph-live-poster {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      background: #000;
+      display: grid;
+      place-items: center;
+    }
+
+    .ph-live-poster video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .ph-live-poster__skip {
+      position: absolute;
+      right: 18px;
+      bottom: calc(18px + env(safe-area-inset-bottom));
+      border: 1px solid rgba(255,255,255,.55);
+      border-radius: 999px;
+      background: rgba(0,0,0,.55);
+      color: #fff;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    @media (max-width: 900px) {
+      .viewport {
+        min-height: 430px;
+        height: min(68vh, 680px);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .viewport {
+        min-height: 410px;
+        height: calc(100vh - 330px);
+        max-height: 640px !important;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header class="hero">
+      <div class="brand">
+        <div class="brand-mark">Ф</div>
+        <div>
+          <div class="eyebrow">Дніпровська філармонія</div>
+          <h1 id="eventTitle">Завантаження події…</h1>
+          <p id="eventMeta" class="event-meta"></p>
+        </div>
+      </div>
+
+      <div id="connectionStatus" class="status-pill">
+        Завантаження…
+      </div>
+    </header>
+
+    <section class="layout">
+      <article class="hall-card">
+        <div class="hall-head">
+          <div>
+            <h2 id="hallName">Великий зал</h2>
+            <div id="hallMeta" class="event-meta"></div>
+          </div>
+
+          <div class="hall-toolbar">
+            <button id="zoomOut" class="tool-btn" type="button" title="Зменшити">−</button>
+            <button id="zoomFit" class="tool-btn" type="button" title="Вмістити">□</button>
+            <button id="zoomIn" class="tool-btn" type="button" title="Збільшити">+</button>
+          </div>
+
+          <div class="legend">
+            <span class="legend-item"><span class="dot"></span> Вільне</span>
+            <span class="legend-item"><span class="dot mine"></span> Обрано</span>
+            <span class="legend-item"><span class="dot hold"></span> Утримується</span>
+            <span class="legend-item"><span class="dot taken"></span> Недоступне</span>
+            <span class="legend-item"><span class="dot closed"></span> Не у продажу</span>
+          </div>
+        </div>
+
+        <div id="viewport" class="viewport">
+          <div id="loading" class="loading">
+            Завантаження схеми та стану місць…
+          </div>
+
+          <div id="scaledStage" class="scaled-stage hidden">
+            <div id="scene" class="scene"></div>
+          </div>
+        </div>
+      </article>
+
+      <aside class="summary-card">
+        <h2>Ваш вибір</h2>
+
+        <div id="summaryList" class="summary-list">
+          <div class="summary-empty">
+            Оберіть місця на схемі.
+          </div>
+        </div>
+
+        <div class="total">
+          <span>Разом</span>
+          <span id="totalAmount">0 грн</span>
+        </div>
+
+        <div id="holdTimer" class="hold-timer"></div>
+
+        <button id="continueBtn" class="primary" type="button" disabled>
+          Оформити замовлення
+        </button>
+
+        <button id="clearBtn" class="secondary" type="button" disabled>
+          Очистити вибір
+        </button>
+
+        <div id="message" class="message" aria-live="polite"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../shared/app-config.js"></script>
+  <script src="../../shared/supabase-client.js"></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const params = new URLSearchParams(location.search);
+      const seanceId =
+        params.get("seance") ||
+        params.get("seance_id") ||
+        "";
+
+      const storageKey = `philharmonic-hold-token:${seanceId}`;
+      const pendingOrderKey = `philharmonic-pending-order:${seanceId}`;
+      const handoffKey = `philharmonic-order-handoff:${seanceId}`;
+
+      const stateByKey = new Map();
+      const geometryByKey = new Map();
+      const selected = new Set();
+
+      let hallState = null;
+      let geometry = null;
+      let busy = false;
+      let countdownTimer = null;
+      let hallViewer = null;
+      let HALL_VISUAL_CONFIG = null;
+
+      // Client Demo V1: visual subsystem exists but is intentionally sleeping.
+      const VISUAL_RUNTIME_ENABLED = false;
+
+      const eventTitle = document.getElementById("eventTitle");
+      const eventMeta = document.getElementById("eventMeta");
+      const connectionStatus = document.getElementById("connectionStatus");
+      const hallName = document.getElementById("hallName");
+      const hallMeta = document.getElementById("hallMeta");
+
+      const viewport = document.getElementById("viewport");
+      const loading = document.getElementById("loading");
+      const scaledStage = document.getElementById("scaledStage");
+      const scene = document.getElementById("scene");
+
+      const summaryList = document.getElementById("summaryList");
+      const totalAmount = document.getElementById("totalAmount");
+      const holdTimer = document.getElementById("holdTimer");
+      const continueBtn = document.getElementById("continueBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const message = document.getElementById("message");
+
+      const zoomOut = document.getElementById("zoomOut");
+      const zoomFit = document.getElementById("zoomFit");
+      const zoomIn = document.getElementById("zoomIn");
+
+      function randomToken() {
+        if (crypto.randomUUID) return crypto.randomUUID();
+
+        const bytes = crypto.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+        const hex = [...bytes]
+          .map(value => value.toString(16).padStart(2, "0"))
+          .join("");
+
+        return [
+          hex.slice(0, 8),
+          hex.slice(8, 12),
+          hex.slice(12, 16),
+          hex.slice(16, 20),
+          hex.slice(20)
+        ].join("-");
+      }
+
+      function getHoldToken() {
+        if (!seanceId) return null;
+
+        let token = localStorage.getItem(storageKey);
+
+        if (!token) {
+          token = randomToken();
+          localStorage.setItem(storageKey, token);
+        }
+
+        return token;
+      }
+
+      function rotateHoldToken() {
+        if (!seanceId) return null;
+
+        const oldToken = localStorage.getItem(storageKey);
+        const nextToken = randomToken();
+
+        localStorage.setItem(storageKey, nextToken);
+
+        if (oldToken) {
+          sessionStorage.removeItem(
+            `philharmonic-order-idempotency:${seanceId}:${oldToken}`
+          );
+        }
+
+        return nextToken;
+      }
+
+      async function resetPreviouslyOrderedCart() {
+        const pendingRaw = sessionStorage.getItem(pendingOrderKey);
+        if (!pendingRaw) return false;
+
+        const oldToken = localStorage.getItem(storageKey);
+
+        if (oldToken) {
+          try {
+            await rpc("release_public_hold", {
+              p_seance_id: seanceId,
+              p_hold_token: oldToken
+            });
+          } catch (error) {
+            console.warn(
+              "Could not release previous ordered hold before starting a new cart:",
+              error
+            );
+          }
+        }
+
+        sessionStorage.removeItem(pendingOrderKey);
+        sessionStorage.removeItem(handoffKey);
+        rotateHoldToken();
+
+        return true;
+      }
+
+      function setMessage(text, isError = false) {
+        message.textContent = text || "";
+        message.className = isError
+          ? "message error"
+          : "message";
+      }
+
+      function formatDate(value) {
+        if (!value) return "";
+
+        const date = new Date(`${value}T00:00:00`);
+        return new Intl.DateTimeFormat("uk-UA", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric"
+        }).format(date);
+      }
+
+      function formatTime(value) {
+        return String(value || "").slice(0, 5);
+      }
+
+      function formatMoney(value) {
+        return `${Number(value || 0).toLocaleString("uk-UA")} грн`;
+      }
+
+      function cssColor(value, fallback = "#ffffff") {
+        const text = String(value || "").trim();
+
+        if (
+          /^#[0-9a-f]{3,8}$/i.test(text) ||
+          /^rgb(a)?\(/i.test(text) ||
+          /^hsl(a)?\(/i.test(text)
+        ) {
+          return text;
+        }
+
+        return fallback;
+      }
+
+      function seatLabel(key) {
+        const seat = geometryByKey.get(key);
+        if (!seat) return key;
+
+        const zone = seat.zone || seat.prefix || "";
+        return `${zone} • ряд ${seat.row} • місце ${seat.seat}`;
+      }
+
+      async function rpc(name, args) {
+        const { data, error } = await PH_SUPABASE.rpc(name, args);
+
+        if (error) {
+          const wrapped = new Error(error.message || name);
+          wrapped.code = error.code;
+          wrapped.details = error.details;
+          throw wrapped;
+        }
+
+        return data;
+      }
+
+      async function loadState() {
+        return rpc("get_public_hall_state", {
+          p_seance_id: seanceId,
+          p_hold_token: getHoldToken()
+        });
+      }
+
+      async function loadGeometry(fileName) {
+        const safeName = String(fileName || "filarmoniya.json")
+          .replace(/^.*[\\/]/, "");
+
+        const response = await fetch(
+          `../../data/hall/${safeName}`,
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+          throw new Error(`geometry_load_failed:${response.status}`);
+        }
+
+        return response.json();
+      }
+
+      function applyHeader() {
+        const seance = hallState.seance || {};
+        const venue = hallState.venue || {};
+        const hall = hallState.hall || {};
+
+        eventTitle.textContent = seance.show || "Подія";
+
+        eventMeta.textContent = [
+          formatDate(seance.date),
+          formatTime(seance.time),
+          venue.name,
+          venue.address
+        ].filter(Boolean).join(" • ");
+
+        hallName.textContent = hall.name || "Великий зал";
+
+        hallMeta.textContent =
+          `Офіційна місткість: ${hall.official_capacity ?? "—"}`;
+
+        connectionStatus.textContent = "Стан місць оновлено";
+      }
+
+      function createHallViewer(viewportEl, canvasEl, hallWidth, hallHeight) {
+        if (!viewportEl || !canvasEl) return null;
+
+        let scale = 1;
+        let minScale = 0.03;
+        let maxScale = 3;
+        let panX = 0;
+        let panY = 0;
+        let userInteracted = false;
+
+        const pointers = new Map();
+
+        let dragging = false;
+        let startX = 0;
+        let startY = 0;
+        let startPanX = 0;
+        let startPanY = 0;
+
+        let pinchStartDist = 0;
+        let pinchStartScale = 1;
+        let resizeTimer = 0;
+        let resizeObserver = null;
+
+        viewportEl.style.overflow = "hidden";
+        viewportEl.style.position = "relative";
+        viewportEl.style.cursor = "grab";
+        viewportEl.style.touchAction = "none";
+        canvasEl.style.transformOrigin = "0 0";
+
+        const isMobile = () => window.innerWidth <= 768;
+
+        function viewportSize() {
+          const rect = viewportEl.getBoundingClientRect();
+          return {
+            width: Math.max(1, Number(viewportEl.clientWidth || rect.width || 0)),
+            height: Math.max(1, Number(viewportEl.clientHeight || rect.height || 0))
+          };
+        }
+
+        function update() {
+          canvasEl.style.transform =
+            `translate3d(${panX}px, ${panY}px, 0) scale(${scale})`;
+        }
+
+        function fit(force = true) {
+          if (!force && userInteracted) return;
+
+          const view = viewportSize();
+          const realW = Number(hallWidth || canvasEl.offsetWidth || 0);
+          const realH = Number(hallHeight || canvasEl.offsetHeight || 0);
+
+          if (!view.width || !view.height || !realW || !realH) return;
+
+          const padding = isMobile() ? 8 : 24;
+          const availableW = Math.max(1, view.width - padding * 2);
+          const availableH = Math.max(1, view.height - padding * 2);
+          const fitScale = Math.min(availableW / realW, availableH / realH);
+
+          if (!Number.isFinite(fitScale) || fitScale <= 0) return;
+
+          minScale = Math.max(0.01, fitScale * 0.25);
+          maxScale = Math.max(fitScale * 8, fitScale + 0.5);
+          scale = fitScale;
+
+          panX = (view.width - realW * scale) / 2;
+          panY = (view.height - realH * scale) / 2;
+          update();
+        }
+
+        function scheduleFit() {
+          clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(() => fit(false), 80);
+        }
+
+        function zoomAt(clientX, clientY, newScale) {
+          const rect = viewportEl.getBoundingClientRect();
+          const mx = clientX - rect.left;
+          const my = clientY - rect.top;
+          const beforeX = (mx - panX) / scale;
+          const beforeY = (my - panY) / scale;
+
+          scale = Math.max(minScale, Math.min(maxScale, newScale));
+          panX = mx - beforeX * scale;
+          panY = my - beforeY * scale;
+          update();
+        }
+
+        function zoomCenter(factor) {
+          const rect = viewportEl.getBoundingClientRect();
+          userInteracted = true;
+          zoomAt(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+            scale * factor
+          );
+        }
+
+        function getDistance(a, b) {
+          const dx = a.clientX - b.clientX;
+          const dy = a.clientY - b.clientY;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function onWheel(event) {
+          event.preventDefault();
+          userInteracted = true;
+          zoomAt(
+            event.clientX,
+            event.clientY,
+            scale * (event.deltaY < 0 ? 1.12 : 0.88)
+          );
+        }
+
+        function onPointerDown(event) {
+          pointers.set(event.pointerId, event);
+
+          if (pointers.size === 2) {
+            const arr = Array.from(pointers.values());
+            pinchStartDist = getDistance(arr[0], arr[1]);
+            pinchStartScale = scale;
+            dragging = false;
+            userInteracted = true;
+            return;
+          }
+
+          if (event.target.closest(".seat")) return;
+          if (event.button !== undefined && event.button !== 0) return;
+
+          dragging = true;
+          userInteracted = true;
+          viewportEl.classList.add("dragging");
+          startX = event.clientX;
+          startY = event.clientY;
+          startPanX = panX;
+          startPanY = panY;
+          viewportEl.setPointerCapture?.(event.pointerId);
+        }
+
+        function onPointerMove(event) {
+          if (!pointers.has(event.pointerId)) return;
+          pointers.set(event.pointerId, event);
+
+          if (pointers.size === 2) {
+            const arr = Array.from(pointers.values());
+            const distance = getDistance(arr[0], arr[1]);
+            if (!pinchStartDist) return;
+
+            const centerX = (arr[0].clientX + arr[1].clientX) / 2;
+            const centerY = (arr[0].clientY + arr[1].clientY) / 2;
+            zoomAt(
+              centerX,
+              centerY,
+              pinchStartScale * (distance / pinchStartDist)
+            );
+            return;
+          }
+
+          if (!dragging) return;
+          panX = startPanX + (event.clientX - startX);
+          panY = startPanY + (event.clientY - startY);
+          update();
+        }
+
+        function endPointer(event) {
+          pointers.delete(event.pointerId);
+          dragging = false;
+          pinchStartDist = 0;
+          viewportEl.classList.remove("dragging");
+          viewportEl.releasePointerCapture?.(event.pointerId);
+        }
+
+        function onDoubleClick(event) {
+          event.preventDefault();
+          userInteracted = false;
+          fit(true);
+        }
+
+        viewportEl.addEventListener("wheel", onWheel, { passive: false });
+        viewportEl.addEventListener("pointerdown", onPointerDown);
+        viewportEl.addEventListener("pointermove", onPointerMove);
+        viewportEl.addEventListener("pointerup", endPointer);
+        viewportEl.addEventListener("pointercancel", endPointer);
+        viewportEl.addEventListener("dblclick", onDoubleClick);
+
+        window.addEventListener("resize", scheduleFit);
+        window.addEventListener("orientationchange", scheduleFit);
+
+        if (typeof ResizeObserver === "function") {
+          resizeObserver = new ResizeObserver(scheduleFit);
+          resizeObserver.observe(viewportEl);
+        }
+
+        const api = {
+          fit() {
+            userInteracted = false;
+            fit(true);
+          },
+
+          refit() {
+            userInteracted = false;
+            requestAnimationFrame(() => {
+              fit(true);
+              requestAnimationFrame(() => fit(true));
+            });
+            setTimeout(() => fit(false), 80);
+            setTimeout(() => fit(false), 220);
+            setTimeout(() => fit(false), 450);
+          },
+
+          zoomIn() { zoomCenter(1.18); },
+          zoomOut() { zoomCenter(0.84); },
+
+          destroy() {
+            clearTimeout(resizeTimer);
+            resizeObserver?.disconnect();
+            viewportEl.removeEventListener("wheel", onWheel);
+            viewportEl.removeEventListener("pointerdown", onPointerDown);
+            viewportEl.removeEventListener("pointermove", onPointerMove);
+            viewportEl.removeEventListener("pointerup", endPointer);
+            viewportEl.removeEventListener("pointercancel", endPointer);
+            viewportEl.removeEventListener("dblclick", onDoubleClick);
+            window.removeEventListener("resize", scheduleFit);
+            window.removeEventListener("orientationchange", scheduleFit);
+          }
+        };
+
+        api.refit();
+        return api;
+      }
+
+      function initHallViewer() {
+        hallViewer?.destroy?.();
+
+        const width = Math.max(1, Number(geometry?.width || 1200));
+        const height = Math.max(1, Number(geometry?.height || 900));
+
+        scene.style.width = `${width}px`;
+        scene.style.height = `${height}px`;
+        scaledStage.style.width = `${width}px`;
+        scaledStage.style.height = `${height}px`;
+
+        hallViewer = createHallViewer(
+          viewport,
+          scaledStage,
+          width,
+          height
+        );
+      }
+
+      function renderDecor() {
+        for (const item of geometry.decor || []) {
+          if (item.type === "stage") {
+            const el = document.createElement("div");
+            el.className = "decor-stage";
+            el.textContent = item.text || "СЦЕНА";
+
+            const width = Number(item.w || 500);
+            const height = Number(item.h || 50);
+
+            Object.assign(el.style, {
+              left: `${Number(item.x || 600) - width / 2}px`,
+              top: `${Number(item.y || 50) - height / 2}px`,
+              width: `${width}px`,
+              height: `${height}px`,
+              transform: `rotate(${Number(item.rotate || 0)}deg)`,
+              fontSize: `${Number(item.size || 24)}px`,
+              zIndex: String(item.z || 10)
+            });
+
+            scene.appendChild(el);
+            continue;
+          }
+
+          if (item.type === "text") {
+            const el = document.createElement("div");
+            el.className = "decor-text";
+            el.textContent = item.text || "";
+
+            const width = Number(item.w || 100);
+            const height = Number(item.h || 30);
+
+            Object.assign(el.style, {
+              left: `${Number(item.x || 0) - width / 2}px`,
+              top: `${Number(item.y || 0) - height / 2}px`,
+              width: `${width}px`,
+              height: `${height}px`,
+              transform: `rotate(${Number(item.rotate || 0)}deg)`,
+              fontSize: `${Math.max(10, Number(item.size || 12))}px`,
+              zIndex: String(item.z || 5)
+            });
+
+            scene.appendChild(el);
+          }
+        }
+      }
+
+      function renderSeats() {
+        for (const seat of geometry.seats || []) {
+          geometryByKey.set(seat.key, seat);
+
+          const current = stateByKey.get(seat.key) || {
+            state: "available",
+            price: null,
+            color: null,
+            sale_enabled: false
+          };
+
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "seat";
+          button.dataset.key = seat.key;
+          button.title =
+            `${seatLabel(seat.key)}\n` +
+            (
+              current.price == null
+                ? "Не у продажу"
+                : formatMoney(current.price)
+            );
+
+          const width = Number(seat.w || 15);
+          const height = Number(seat.h || 15);
+
+          Object.assign(button.style, {
+            left: `${Number(seat.x || 0) - width / 2}px`,
+            top: `${Number(seat.y || 0) - height / 2}px`,
+            width: `${width}px`,
+            height: `${height}px`,
+            transform: `rotate(${Number(seat.rotate || 0)}deg)`,
+            zIndex: "30",
+            background: cssColor(current.color, "#ffffff")
+          });
+
+          const state = String(current.state || "available");
+
+          if (state === "mine") {
+            button.classList.add("mine");
+          } else if (state === "hold") {
+            button.classList.add("hold");
+            button.disabled = true;
+          } else if (["sold", "reserved", "blocked"].includes(state)) {
+            button.classList.add(state);
+            button.disabled = true;
+          } else if (!current.sale_enabled || current.price == null) {
+            button.classList.add("not-for-sale");
+            button.disabled = true;
+          }
+
+          button.addEventListener("click", () => toggleSeat(seat.key));
+          scene.appendChild(button);
+        }
+      }
+
+      function syncState(nextState) {
+        hallState = nextState;
+        stateByKey.clear();
+        selected.clear();
+
+        for (const seat of hallState.seats || []) {
+          stateByKey.set(seat.seat_key, seat);
+
+          if (seat.state === "mine") {
+            selected.add(seat.seat_key);
+          }
+        }
+
+        applyHeader();
+
+        scene.innerHTML = "";
+        renderDecor();
+        renderSeats();
+        renderSummary();
+
+        loading.classList.add("hidden");
+        scaledStage.classList.remove("hidden");
+
+        startCountdown();
+      }
+
+      function renderSummary() {
+        const keys = [...selected].sort();
+        let total = 0;
+
+        if (!keys.length) {
+          summaryList.innerHTML =
+            `<div class="summary-empty">Оберіть місця на схемі.</div>`;
+        } else {
+          summaryList.innerHTML = "";
+
+          for (const key of keys) {
+            const current = stateByKey.get(key);
+            const price = Number(current?.price || 0);
+            total += price;
+
+            const row = document.createElement("div");
+            row.className = "summary-row";
+
+            const label = document.createElement("span");
+            label.textContent = seatLabel(key);
+
+            const value = document.createElement("strong");
+            value.textContent = formatMoney(price);
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "remove-seat";
+            remove.textContent = "×";
+            remove.title = "Прибрати";
+            remove.addEventListener("click", () => toggleSeat(key));
+
+            row.append(label, value, remove);
+            summaryList.appendChild(row);
+          }
+        }
+
+        totalAmount.textContent = formatMoney(total);
+        clearBtn.disabled = !keys.length || busy;
+        continueBtn.disabled = !keys.length || busy;
+      }
+
+      async function toggleSeat(key) {
+        if (busy) return;
+
+        const current = stateByKey.get(key);
+        const state = current?.state || "available";
+
+        if (
+          state !== "mine" &&
+          (
+            state !== "available" ||
+            !current?.sale_enabled ||
+            current?.price == null
+          )
+        ) {
+          return;
+        }
+
+        const next = new Set(selected);
+
+        if (next.has(key)) {
+          next.delete(key);
+        } else {
+          if (next.size >= 12) {
+            setMessage("За один раз можна утримувати не більше 12 місць.", true);
+            return;
+          }
+          next.add(key);
+        }
+
+        await saveSelection([...next]);
+      }
+
+      async function saveSelection(keys) {
+        busy = true;
+        setMessage("Оновлення вибору…");
+        renderSummary();
+
+        try {
+          const nextState = keys.length
+            ? await rpc("set_public_hold", {
+                p_seance_id: seanceId,
+                p_seat_keys: keys,
+                p_hold_token: getHoldToken()
+              })
+            : await rpc("release_public_hold", {
+                p_seance_id: seanceId,
+                p_hold_token: getHoldToken()
+              });
+
+          syncState(nextState);
+          setMessage(
+            keys.length
+              ? "Місця утримуються 15 хвилин."
+              : "Вибір очищено."
+          );
+
+        } catch (error) {
+          console.error(error);
+
+          if (
+            error.message.includes("seat_conflict") ||
+            error.code === "40001"
+          ) {
+            setMessage(
+              "Одне з місць щойно зайняв інший покупець. Стан залу оновлено.",
+              true
+            );
+          } else if (error.message.includes("seat_not_for_sale")) {
+            setMessage("Обране місце недоступне для продажу.", true);
+          } else {
+            setMessage(`Не вдалося оновити вибір: ${error.message}`, true);
+          }
+
+          try {
+            syncState(await loadState());
+          } catch (_) {
+            // Keep the original error visible.
+          }
+
+        } finally {
+          busy = false;
+          renderSummary();
+        }
+      }
+
+      async function clearSelection() {
+        if (!selected.size || busy) return;
+        await saveSelection([]);
+      }
+
+      function goToOrder() {
+        if (!selected.size || busy || !seanceId) return;
+
+        const payload = {
+          seance_id: seanceId,
+          hold_token: getHoldToken(),
+          seat_keys: [...selected],
+          created_at: new Date().toISOString()
+        };
+
+        // Не кладём hold token в URL: передаём его внутри того же origin.
+        sessionStorage.setItem(
+          `philharmonic-order-handoff:${seanceId}`,
+          JSON.stringify(payload)
+        );
+
+        const url = new URL("order.html", location.href);
+        url.searchParams.set("seance", seanceId);
+        location.href = url.toString();
+      }
+
+      function startCountdown() {
+        clearInterval(countdownTimer);
+
+        const expiresAt = hallState?.my_hold_expires_at;
+
+        if (!expiresAt || !selected.size) {
+          holdTimer.textContent = "";
+          return;
+        }
+
+        const tick = async () => {
+          const remaining =
+            new Date(expiresAt).getTime() - Date.now();
+
+          if (remaining <= 0) {
+            clearInterval(countdownTimer);
+            holdTimer.textContent = "Час утримання завершився.";
+
+            try {
+              syncState(await loadState());
+            } catch (error) {
+              console.error(error);
+            }
+
+            return;
+          }
+
+          const seconds = Math.ceil(remaining / 1000);
+          const minutesPart = Math.floor(seconds / 60);
+          const secondsPart = String(seconds % 60).padStart(2, "0");
+
+          holdTimer.textContent =
+            `Утримання: ${minutesPart}:${secondsPart}`;
+        };
+
+        tick();
+        countdownTimer = setInterval(tick, 1000);
+      }
+
+      function normalizeVisualConfig(raw = {}) {
+        return {
+          poster: raw.poster || raw.poster_url || "",
+          livePoster: raw.livePoster || raw.live_poster_url || "",
+          livePosterDuration: Number(
+            raw.livePosterDuration || raw.live_poster_duration || 6200
+          ),
+
+          image: raw.image || raw.background_image_url || "",
+          imageEnabled:
+            raw.imageEnabled === true || raw.background_image_enabled === true,
+          imageOpacity: Number(raw.imageOpacity ?? raw.background_image_opacity ?? 1),
+          imageScale: Number(raw.imageScale ?? raw.background_image_scale ?? 1),
+          imageX: Number(raw.imageX ?? raw.background_image_x ?? 0),
+          imageY: Number(raw.imageY ?? raw.background_image_y ?? 0),
+          imageFit: raw.imageFit || raw.background_image_fit || "cover",
+
+          overlayOpacity: Number(
+            raw.overlayOpacity ?? raw.background_overlay_opacity ?? 0
+          ),
+
+          video: raw.video || raw.background_video_url || "",
+          videoOpacity: Number(raw.videoOpacity ?? raw.background_video_opacity ?? 1),
+          videoScale: Number(raw.videoScale ?? raw.background_video_scale ?? 1),
+          videoX: Number(raw.videoX ?? raw.background_video_x ?? 0),
+          videoY: Number(raw.videoY ?? raw.background_video_y ?? 0),
+          videoFit: raw.videoFit || raw.background_video_fit || "cover",
+          videoLoop:
+            raw.videoLoop !== false && raw.background_video_loop !== false,
+          videoMuted:
+            raw.videoMuted !== false && raw.background_video_muted !== false
+        };
+      }
+
+      async function loadVisualConfig() {
+        if (!VISUAL_RUNTIME_ENABLED) return null;
+
+        // Future source contract. Later only this function needs DB/RPC wiring.
+        const raw =
+          window.PH_HALL_VISUAL_CONFIG ||
+          hallState?.seance?.visual_config ||
+          null;
+
+        if (!raw) return null;
+        HALL_VISUAL_CONFIG = normalizeVisualConfig(raw);
+        return HALL_VISUAL_CONFIG;
+      }
+
+      function clearVisualBackground() {
+        document.querySelector("#ph-visual-image-bg")?.remove();
+        document.querySelector("#ph-visual-video-bg")?.remove();
+        document.querySelector("#ph-visual-overlay-bg")?.remove();
+        document.body.classList.remove("ph-visual-active");
+      }
+
+      function renderVisualBackground() {
+        clearVisualBackground();
+        if (!VISUAL_RUNTIME_ENABLED || !HALL_VISUAL_CONFIG) return;
+
+        const imageUrl = HALL_VISUAL_CONFIG.image || "";
+        const useStaticImage =
+          Boolean(imageUrl) && HALL_VISUAL_CONFIG.imageEnabled === true;
+
+        let mediaLayer = null;
+
+        if (useStaticImage) {
+          const image = document.createElement("img");
+          image.id = "ph-visual-image-bg";
+          image.src = imageUrl;
+          image.alt = "";
+          image.style.width =
+            `${100 * Number(HALL_VISUAL_CONFIG.imageScale || 1)}vw`;
+          image.style.height =
+            `${100 * Number(HALL_VISUAL_CONFIG.imageScale || 1)}vh`;
+          image.style.transform =
+            `translate(calc(-50% + ${Number(HALL_VISUAL_CONFIG.imageX || 0)}px), ` +
+            `calc(-50% + ${Number(HALL_VISUAL_CONFIG.imageY || 0)}px))`;
+          image.style.objectFit = HALL_VISUAL_CONFIG.imageFit || "cover";
+          image.style.opacity = String(HALL_VISUAL_CONFIG.imageOpacity ?? 1);
+          mediaLayer = image;
+
+        } else if (HALL_VISUAL_CONFIG.video) {
+          const video = document.createElement("video");
+          video.id = "ph-visual-video-bg";
+          video.src = HALL_VISUAL_CONFIG.video;
+          video.autoplay = true;
+          video.loop = HALL_VISUAL_CONFIG.videoLoop !== false;
+          video.muted = HALL_VISUAL_CONFIG.videoMuted !== false;
+          video.playsInline = true;
+          video.style.width =
+            `${100 * Number(HALL_VISUAL_CONFIG.videoScale || 1)}vw`;
+          video.style.height =
+            `${100 * Number(HALL_VISUAL_CONFIG.videoScale || 1)}vh`;
+          video.style.transform =
+            `translate(calc(-50% + ${Number(HALL_VISUAL_CONFIG.videoX || 0)}px), ` +
+            `calc(-50% + ${Number(HALL_VISUAL_CONFIG.videoY || 0)}px))`;
+          video.style.objectFit = HALL_VISUAL_CONFIG.videoFit || "cover";
+          video.style.opacity = String(HALL_VISUAL_CONFIG.videoOpacity ?? 1);
+          mediaLayer = video;
+        }
+
+        if (!mediaLayer) return;
+
+        document.body.classList.add("ph-visual-active");
+        document.body.prepend(mediaLayer);
+
+        const overlayOpacity = Number(HALL_VISUAL_CONFIG.overlayOpacity || 0);
+        if (overlayOpacity > 0) {
+          const overlay = document.createElement("div");
+          overlay.id = "ph-visual-overlay-bg";
+          overlay.style.opacity = String(overlayOpacity);
+          mediaLayer.insertAdjacentElement("afterend", overlay);
+        }
+      }
+
+      function playLivePosterIntro() {
+        return new Promise(resolve => {
+          if (!VISUAL_RUNTIME_ENABLED || !HALL_VISUAL_CONFIG?.livePoster) {
+            resolve();
+            return;
+          }
+
+          const layer = document.createElement("div");
+          layer.className = "ph-live-poster";
+
+          const video = document.createElement("video");
+          video.src = HALL_VISUAL_CONFIG.livePoster;
+          video.autoplay = true;
+          video.playsInline = true;
+          video.controls = false;
+
+          const skip = document.createElement("button");
+          skip.type = "button";
+          skip.className = "ph-live-poster__skip";
+          skip.textContent = "Пропустити";
+
+          let finished = false;
+          let timer = 0;
+
+          const finish = () => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            video.pause();
+            layer.remove();
+            resolve();
+          };
+
+          skip.addEventListener("click", finish);
+          video.addEventListener("ended", finish, { once: true });
+          video.addEventListener("error", finish, { once: true });
+
+          layer.append(video, skip);
+          document.body.appendChild(layer);
+
+          timer = window.setTimeout(
+            finish,
+            Math.max(1000, Number(HALL_VISUAL_CONFIG.livePosterDuration || 6200))
+          );
+
+          video.play().catch(() => {});
+        });
+      }
+
+      async function boot() {
+        if (!seanceId) {
+          loading.textContent =
+            "У посиланні відсутній seance_id.";
+          connectionStatus.textContent = "Помилка";
+          return;
+        }
+
+        try {
+          // If this tab already created an order and the user returned to Hall,
+          // the old cart generation must never be reused for another order.
+          await resetPreviouslyOrderedCart();
+
+          let nextState = await loadState();
+
+          // A hold token is a cart-generation identifier, not a permanent
+          // browser identifier. If it no longer owns an active hold, rotate it
+          // before the next selection so an expired booking/order link cannot
+          // be resurrected by set_public_hold().
+          if (!nextState?.my_hold_expires_at) {
+            rotateHoldToken();
+            nextState = await loadState();
+          }
+
+          const nextGeometry = await loadGeometry(
+            nextState?.hall?.geometry_file || "filarmoniya.json"
+          );
+
+          geometry = nextGeometry;
+
+          const geometryWidth = Math.max(1, Number(geometry?.width || 1200));
+          const geometryHeight = Math.max(1, Number(geometry?.height || 900));
+          scene.style.width = `${geometryWidth}px`;
+          scene.style.height = `${geometryHeight}px`;
+          scaledStage.style.width = `${geometryWidth}px`;
+          scaledStage.style.height = `${geometryHeight}px`;
+
+          stateByKey.clear();
+
+          for (const seat of nextState.seats || []) {
+            stateByKey.set(seat.seat_key, seat);
+          }
+
+          syncState(nextState);
+
+          await loadVisualConfig();
+          if (VISUAL_RUNTIME_ENABLED) {
+            await playLivePosterIntro();
+            renderVisualBackground();
+          }
+
+          initHallViewer();
+
+        } catch (error) {
+          console.error(error);
+
+          connectionStatus.textContent = "Недоступно";
+          loading.innerHTML =
+            `<div>
+              <strong>Не вдалося відкрити зал.</strong><br><br>
+              ${String(error.message || error)}
+            </div>`;
+        }
+      }
+
+      zoomOut.addEventListener("click", () => hallViewer?.zoomOut());
+      zoomFit.addEventListener("click", () => hallViewer?.fit());
+      zoomIn.addEventListener("click", () => hallViewer?.zoomIn());
+      clearBtn.addEventListener("click", clearSelection);
+      continueBtn.addEventListener("click", goToOrder);
+
+      window.addEventListener("pagehide", () => {
+        hallViewer?.destroy?.();
+      });
+
+      boot();
+    })();
+  </script>
+</body>
+</html>

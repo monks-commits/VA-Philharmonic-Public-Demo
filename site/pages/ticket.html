@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Квиток — Дніпровська філармонія</title>
+<style>
+:root{--ink:#172c3b;--muted:#667985;--line:#d9e7ee;--blue:#138fca;--soft:#eef8fc}
+*{box-sizing:border-box}
+html,body{margin:0;background:#edf3f6;color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+.toolbar{position:sticky;top:0;z-index:10;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:12px;background:rgba(237,243,246,.96);border-bottom:1px solid #dce6eb}
+button{min-height:44px;padding:0 18px;border-radius:11px;border:1px solid #cbdce5;background:#fff;font-weight:900;cursor:pointer}
+button.primary{border:0;background:var(--blue);color:#fff}
+.wrap{width:min(900px,100%);margin:0 auto;padding:18px 12px 40px}
+.ticket-page{width:100%;min-height:1120px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 34px rgba(31,77,98,.12);padding:34px;display:grid;grid-template-rows:auto auto 1fr auto;gap:22px;margin-bottom:20px}
+.header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:18px}
+.kicker{font-size:13px;font-weight:900;letter-spacing:.08em}.ticket-no{font-size:20px;font-weight:950}
+h1{margin:7px 0 0;font-size:34px;line-height:1.05;text-transform:uppercase}
+.meta{color:var(--muted);margin-top:8px;line-height:1.5}
+.main{display:grid;grid-template-columns:1fr 290px;gap:26px;align-items:start}
+.info{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{padding:14px 0;border-bottom:1px solid #e8eef2}.field b{display:block;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}.field span{font-size:18px;font-weight:800}
+.qrbox{border:1px solid var(--line);border-radius:16px;padding:16px;text-align:center}.qrbox canvas,.qrbox img{max-width:100%;height:auto}.qr-caption{margin-top:10px;font-size:12px;color:var(--muted);word-break:break-all}
+.rules{display:grid;grid-template-columns:1fr 1fr;gap:22px;border-top:1px solid var(--line);padding-top:18px;font-size:12px;line-height:1.5;color:#394f5c}
+.rules h3{font-size:13px;margin:0 0 8px;color:var(--ink)}.rules ol{margin:0;padding-left:18px}
+.footer{border-top:2px solid var(--ink);padding-top:14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:15px;align-items:flex-end}
+.footer b{color:var(--ink)}
+.message{padding:24px;text-align:center;font-weight:800}
+@media(max-width:700px){
+  .ticket-page{min-height:auto;padding:20px;border-radius:12px}
+  .main{grid-template-columns:1fr}
+  .info{grid-template-columns:1fr}
+  .rules{grid-template-columns:1fr}
+  h1{font-size:26px}
+  .qrbox{max-width:330px;margin:auto;width:100%}
+}
+@media print{
+  html,body{background:#fff}
+  .toolbar{display:none!important}
+  .wrap{width:100%;padding:0;margin:0}
+  .ticket-page{box-shadow:none;border:0;border-radius:0;margin:0;min-height:100vh;page-break-after:always}
+}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <button id="backBtn">← До замовлення</button>
+  <button id="pdfBtn" class="primary">Завантажити PDF</button>
+  <button id="printBtn">Друк</button>
+</div>
+<main id="wrap" class="wrap"><div class="message">Завантаження квитка…</div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(() => {
+"use strict";
+
+const params = new URLSearchParams(location.search);
+const orderId = params.get("order") || "";
+const storageKey = `philharmonic-issued-ticket:${orderId}`;
+const wrap = document.getElementById("wrap");
+const backBtn = document.getElementById("backBtn");
+const pdfBtn = document.getElementById("pdfBtn");
+const printBtn = document.getElementById("printBtn");
+
+function esc(value) {
+  return String(value ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#39;");
+}
+
+function money(value) {
+  return `${Number(value || 0).toLocaleString("uk-UA")} грн`;
+}
+
+function dateText(value) {
+  if (!value) return "";
+  const d = new Date(`${value}T00:00:00`);
+  return new Intl.DateTimeFormat("uk-UA", {
+    day:"2-digit", month:"2-digit", year:"numeric"
+  }).format(d);
+}
+
+function timeText(value) {
+  return String(value || "").slice(0,5);
+}
+
+function splitSeat(displaySeat, seatKey) {
+  const text = String(displaySeat || seatKey || "");
+  const m = text.match(/^(.*?)\s*•\s*ряд\s+(\d+)\s*•\s*місце\s+(\d+)$/i);
+  if (m) return { sector:m[1], row:m[2], seat:m[3] };
+
+  const p = String(seatKey || "").match(/^([A-Za-zА-Яа-яІіЇїЄє]+)?(\d+)-M(\d+)$/);
+  if (p) {
+    return {
+      sector: p[1] === "P" || !p[1] ? "Партер" : p[1],
+      row: p[2],
+      seat: p[3]
+    };
+  }
+
+  return { sector:text || "—", row:"—", seat:"—" };
+}
+
+let bundle = null;
+try {
+  bundle = JSON.parse(sessionStorage.getItem(storageKey) || "null");
+} catch (_) {}
+
+if (!bundle?.ok || !Array.isArray(bundle.tickets) || !bundle.tickets.length) {
+  wrap.innerHTML = '<div class="message">Дані випущеного квитка не знайдено. Поверніться до замовлення.</div>';
+  pdfBtn.disabled = true;
+  printBtn.disabled = true;
+  return;
+}
+
+wrap.innerHTML = "";
+
+for (const ticket of bundle.tickets) {
+  const seat = splitSeat(ticket.display_seat, ticket.seat_label);
+  const event = bundle.event || {};
+  const buyer = bundle.buyer || {};
+
+  const page = document.createElement("section");
+  page.className = "ticket-page";
+
+  page.innerHTML = `
+    <div class="header">
+      <div>
+        <div class="kicker">КВИТОК / E-TICKET</div>
+        <h1>${esc(event.show || "Подія")}</h1>
+        <div class="meta">
+          ${esc(dateText(event.date))} • ${esc(timeText(event.time))}<br>
+          ${esc(event.venue_name || "Дніпровська філармонія")}
+          ${event.venue_address ? " • " + esc(event.venue_address) : ""}
+        </div>
+      </div>
+      <div class="ticket-no">№ ${esc(ticket.ticket_number || "")}</div>
+    </div>
+
+    <div class="main">
+      <div class="info">
+        <div class="field"><b>Сектор / Sector</b><span>${esc(seat.sector)}</span></div>
+        <div class="field"><b>Ряд / Row</b><span>${esc(seat.row)}</span></div>
+        <div class="field"><b>Місце / Place</b><span>${esc(seat.seat)}</span></div>
+        <div class="field"><b>Ціна / Price</b><span>${esc(money(ticket.price))}</span></div>
+        <div class="field"><b>Власник / Owner</b><span>${esc(buyer.name || "—")}</span></div>
+        <div class="field"><b>Канал / Channel</b><span>${esc(ticket.channel || "philharmonic_online")}</span></div>
+      </div>
+
+      <div class="qrbox">
+        <canvas class="qr"></canvas>
+        <div class="qr-caption">${esc(ticket.qr_payload || "")}</div>
+        <div style="margin-top:8px;font-weight:900">Контроль / Control</div>
+        <div>${esc(ticket.ticket_number || "")}</div>
+      </div>
+    </div>
+
+    <div class="rules">
+      <div>
+        <h3>Правила:</h3>
+        <ol>
+          <li>Квиток дійсний для одноразового входу на зазначений захід.</li>
+          <li>QR-код є унікальним. Не передавайте його третім особам та не публікуйте.</li>
+          <li>Зберігайте квиток до завершення заходу.</li>
+          <li>Відвідувач зобов’язаний виконувати правила майданчика та вимоги служби контролю.</li>
+          <li>Повернення та обмін здійснюються відповідно до умов організатора і законодавства.</li>
+          <li>Пошкоджений або вже погашений QR-код не дає права на повторний вхід.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>Rules:</h3>
+        <ol>
+          <li>This ticket is valid for one admission to the stated event.</li>
+          <li>The QR code is unique. Do not share or publish it.</li>
+          <li>Keep the ticket until the event is over.</li>
+          <li>Visitors must follow venue rules and access-control instructions.</li>
+          <li>Refunds and exchanges are handled under organizer terms and applicable law.</li>
+          <li>An already redeemed QR code does not allow re-entry.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>
+        <b>${esc(event.venue_name || "Дніпровська філармонія")}</b><br>
+        ${esc(event.venue_address || "")}
+        ${event.venue_phone ? " • тел. " + esc(event.venue_phone) : ""}
+      </div>
+      <div style="text-align:right">
+        <b>${esc(ticket.ticket_number || "")}</b><br>
+        E-Ticket
+      </div>
+    </div>
+  `;
+
+  wrap.appendChild(page);
+
+  const canvas = page.querySelector(".qr");
+  QRCode.toCanvas(
+    canvas,
+    String(ticket.qr_payload || ""),
+    { width: 260, margin: 1, errorCorrectionLevel: "M" },
+    error => { if (error) console.error(error); }
+  );
+}
+
+backBtn.addEventListener("click", () => history.back());
+printBtn.addEventListener("click", () => window.print());
+
+pdfBtn.addEventListener("click", async () => {
+  pdfBtn.disabled = true;
+  pdfBtn.textContent = "Готуємо PDF…";
+
+  try {
+    const pages = [...document.querySelectorAll(".ticket-page")];
+    const container = document.createElement("div");
+
+    for (const page of pages) {
+      container.appendChild(page.cloneNode(true));
+    }
+
+    // QR canvases do not clone their bitmap, so replace clone canvases with images.
+    const originalCanvases = [...document.querySelectorAll(".ticket-page canvas.qr")];
+    const clonedCanvases = [...container.querySelectorAll("canvas.qr")];
+
+    clonedCanvases.forEach((c, i) => {
+      const img = new Image();
+      img.src = originalCanvases[i].toDataURL("image/png");
+      img.style.maxWidth = "100%";
+      img.style.height = "auto";
+      c.replaceWith(img);
+    });
+
+    await html2pdf()
+      .set({
+        margin: 0,
+        filename: `${orderId}-ticket.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] }
+      })
+      .from(container)
+      .save();
+
+  } catch (error) {
+    console.error(error);
+    alert("Не вдалося сформувати PDF. Використайте кнопку «Друк» → «Зберегти як PDF».");
+  } finally {
+    pdfBtn.disabled = false;
+    pdfBtn.textContent = "Завантажити PDF";
+  }
+});
+})();
+</script>
+</body>
+</html>
