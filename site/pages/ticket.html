@@ -50,7 +50,7 @@ h1{margin:7px 0 0;font-size:34px;line-height:1.05;text-transform:uppercase}
 </div>
 <main id="wrap" class="wrap"><div class="message">Завантаження квитка…</div></main>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 (() => {
@@ -153,7 +153,7 @@ for (const ticket of bundle.tickets) {
       </div>
 
       <div class="qrbox">
-        <canvas class="qr"></canvas>
+        <div class="qr"></div>
         <div class="qr-caption">${esc(ticket.qr_payload || "")}</div>
         <div style="margin-top:8px;font-weight:900">Контроль / Control</div>
         <div>${esc(ticket.ticket_number || "")}</div>
@@ -200,13 +200,21 @@ for (const ticket of bundle.tickets) {
 
   wrap.appendChild(page);
 
-  const canvas = page.querySelector(".qr");
-  QRCode.toCanvas(
-    canvas,
-    String(ticket.qr_payload || ""),
-    { width: 260, margin: 1, errorCorrectionLevel: "M" },
-    error => { if (error) console.error(error); }
-  );
+  const qrHost = page.querySelector(".qr");
+  const qrPayload = String(ticket.qr_payload || "");
+
+  if (!qrPayload) {
+    qrHost.textContent = "QR payload відсутній";
+  } else {
+    new QRCode(qrHost, {
+      text: qrPayload,
+      width: 260,
+      height: 260,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
 }
 
 backBtn.addEventListener("click", () => history.back());
@@ -224,16 +232,28 @@ pdfBtn.addEventListener("click", async () => {
       container.appendChild(page.cloneNode(true));
     }
 
-    // QR canvases do not clone their bitmap, so replace clone canvases with images.
-    const originalCanvases = [...document.querySelectorAll(".ticket-page canvas.qr")];
-    const clonedCanvases = [...container.querySelectorAll("canvas.qr")];
+    // QRCode.js paints into a child canvas/image. Preserve that bitmap in the PDF clone.
+    const originalQrHosts = [...document.querySelectorAll(".ticket-page .qr")];
+    const clonedQrHosts = [...container.querySelectorAll(".ticket-page .qr")];
 
-    clonedCanvases.forEach((c, i) => {
+    clonedQrHosts.forEach((host, i) => {
+      const sourceHost = originalQrHosts[i];
+      const sourceCanvas = sourceHost?.querySelector("canvas");
+      const sourceImage = sourceHost?.querySelector("img");
+
+      const dataUrl = sourceCanvas
+        ? sourceCanvas.toDataURL("image/png")
+        : sourceImage?.src || "";
+
+      if (!dataUrl) return;
+
       const img = new Image();
-      img.src = originalCanvases[i].toDataURL("image/png");
+      img.src = dataUrl;
       img.style.maxWidth = "100%";
       img.style.height = "auto";
-      c.replaceWith(img);
+
+      host.innerHTML = "";
+      host.appendChild(img);
     });
 
     await html2pdf()
