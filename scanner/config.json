@@ -1,0 +1,6 @@
+{
+  "theatreName": "Дніпровська філармонія • Сканер квитків",
+  "endpoint": "https://lyvdrqilglqwkmajmbai.supabase.co/functions/v1/scan-ticket",
+  "requireSecret": true,
+  "expectedSeanceId": ""
+}
