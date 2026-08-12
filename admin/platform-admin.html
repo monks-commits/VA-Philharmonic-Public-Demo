@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Технічне адміністрування — Філармонія</title>
+
+  <style>
+    :root {
+      --blue: #1598d2;
+      --blue-dark: #0875aa;
+      --ink: #183042;
+      --muted: #617584;
+      --line: #d8e8f0;
+      --soft: #eef8fc;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: var(--soft);
+      color: var(--blue-dark);
+      font-size: 23px;
+      font-weight: 800;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .brand p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .logout {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 10px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .hero {
+      padding: 42px 0 28px;
+    }
+
+    .hero h2 {
+      margin: 0 0 8px;
+      font-size: clamp(32px, 5vw, 52px);
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      min-height: 180px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      box-shadow: 0 10px 32px rgba(32, 93, 119, .07);
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 21px;
+    }
+
+    .card p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.45;
+      flex: 1;
+    }
+
+    .button {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 11px;
+      background: var(--blue);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 750;
+    }
+
+    .button:hover { background: var(--blue-dark); }
+
+    .status {
+      margin-top: 22px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background: var(--soft);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">Ф</div>
+        <div>
+          <h1>Платформа філармонії</h1>
+          <p id="identity">Перевірка доступу…</p>
+        </div>
+      </div>
+
+      <button class="logout" onclick="PhAuth.signOut()">
+        Вийти
+      </button>
+    </header>
+
+    <section class="hero">
+      <h2>Технічне адміністрування</h2>
+      <p>
+        Робоче місце адміністратора-розробника платформи.
+      </p>
+    </section>
+
+    <section class="grid">
+      <article
+        class="card"
+        data-permission="seance.view_all"
+      >
+        <h3>Редактор сеансів</h3>
+        <p>
+          Чернетки, ціни, схема повного залу, збереження та окрема публікація.
+        </p>
+        <a class="button" href="./seance-editor.html">
+          Відкрити редактор
+        </a>
+      </article>
+
+      <article
+        class="card"
+        data-permission="permissions.manage"
+      >
+        <h3>Співробітники та права</h3>
+        <p>
+          Кабінети, ролі та індивідуальні дозволи. Інтерфейс буде додано наступним модулем.
+        </p>
+      </article>
+<article
+        class="card"
+        data-permission="system.configuration"
+      >
+        <h3>Налаштування платформи</h3>
+        <p>
+          Технічні параметри, підключення і журнал стану. Модуль у підготовці.
+        </p>
+      </article>
+    </section>
+
+    <div id="status" class="status">
+      Завантаження профілю доступу…
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="../shared/app-config.js"></script>
+  <script src="../shared/supabase-client.js"></script>
+
+  <script>
+    async function boot() {
+      const identity = document.getElementById("identity");
+      const status = document.getElementById("status");
+
+      try {
+        const profile = await PhAuth.requirePermission(
+          "cabinet.platform_admin.open"
+        );
+
+        identity.textContent =
+          `${profile.display_name} • ${profile.roles.join(", ")}`;
+
+        document
+          .querySelectorAll("[data-permission]")
+          .forEach((element) => {
+            const permission = element.dataset.permission;
+
+            if (!PhAuth.hasPermission(profile, permission)) {
+              element.classList.add("hidden");
+            }
+          });
+
+        status.textContent =
+          `Майданчик: ${profile.venue_id}. Доступ перевірено сервером.`;
+
+      } catch (error) {
+        if (
+          error.message === "authentication_required"
+        ) return;
+
+        status.textContent = "Доступ заборонено.";
+        document.querySelector(".grid").innerHTML = "";
+      }
+    }
+
+    boot();
+  </script>
+</body>
+</html>
