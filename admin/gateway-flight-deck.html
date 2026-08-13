@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gateway Flight Deck — Дніпровська філармонія</title>
+<style>
+:root{
+  --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
+  --green:#3bd177;--green-soft:#173623;--amber:#ffbd45;--red:#ff5e64;--blue:#54a6ff;--off:#3a4653;
+  --white:#f7fafc;--seat:#f8fbff;--seatline:#9fb1c3;--sold:#66727e;--hold:#f1a73d;--mine:#38a8dc;--blocked:#29323c;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+button,select,input{font:inherit}
+body{padding:18px}
+.deck{max-width:1600px;margin:0 auto}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#17212c;color:var(--text);border-radius:10px;padding:10px 14px;font-weight:750;cursor:pointer}.btn:hover{background:#1d2a38}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.primary{background:#194f7c;border-color:#2a75ac}.btn.green{background:#176b3c;border-color:#249d58}.btn.red{background:#6e2830;border-color:#9f3843}.btn.amber{background:#6f501d;border-color:#a9792a}.btn.big{min-height:50px;padding:12px 18px;font-size:16px}
+.instrument{background:linear-gradient(180deg,#111922,#0e151d);border:1px solid #273545;border-radius:18px;padding:14px;box-shadow:inset 0 0 0 1px #0a0f14;margin-bottom:14px}
+.lamps{display:grid;grid-template-columns:repeat(7,minmax(105px,1fr));gap:10px}.lampbox{border:1px solid #293846;background:#0c1218;border-radius:12px;padding:10px;text-align:center}.lamp{width:22px;height:22px;border-radius:50%;margin:0 auto 7px;background:var(--off);box-shadow:inset 0 0 0 3px #1b252f,0 0 0 1px #465565}.lamp.on{background:var(--green);box-shadow:inset 0 0 0 3px #1d4a2d,0 0 14px rgba(59,209,119,.72)}.lamp.warn{background:var(--amber);box-shadow:inset 0 0 0 3px #5c4319,0 0 14px rgba(255,189,69,.6)}.lamp.bad{background:var(--red);box-shadow:inset 0 0 0 3px #572126,0 0 14px rgba(255,94,100,.55)}.lamp-title{font-size:12px;letter-spacing:.07em;font-weight:850}.lamp-value{color:var(--muted);font-size:12px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pathbar{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:8px;margin-top:12px;border-top:1px solid #23303c;padding-top:12px}.node{border:1px solid var(--line);border-radius:11px;background:#121b24;padding:9px 11px;text-align:center}.node strong{display:block}.node span{font-size:12px;color:var(--muted)}.arrow{color:var(--blue);font-weight:900}.ms{font-variant-numeric:tabular-nums;color:#b9daf9}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.step{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.stepno{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#263544;color:#c9d7e6;font-weight:900}.card h2{font-size:17px;margin:0}.hint{color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}.controls{margin-top:12px;display:grid;gap:8px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.field{display:grid;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:700}.field select,.field input{width:100%;min-height:42px;border:1px solid #334657;border-radius:9px;background:#0e161e;color:var(--text);padding:8px 10px}.statusline{min-height:18px;color:var(--muted);font-size:12px}.statusline.ok{color:var(--green)}.statusline.bad{color:var(--red)}
+.permissions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.perm{border:1px solid #354657;border-radius:10px;background:#101820;padding:10px;text-align:center;cursor:pointer;color:var(--text);font-weight:850}.perm.on{border-color:#298e51;background:#163522;color:#8ef0b2}.perm:disabled{opacity:.4;cursor:not-allowed}
+.takeoff{border:1px solid #314257;background:#0d141c;border-radius:18px;overflow:hidden}.takeoff-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #293846;background:#111a24}.takeoff-head h2{margin:0;font-size:20px}.ready-badge{border:1px solid #3b4b5b;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:850;color:var(--muted)}.ready-badge.on{color:#8ef0b2;border-color:#288f51;background:#153622}.race-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px minmax(0,1fr);gap:10px;padding:10px}.side{border:1px solid #273747;border-radius:13px;background:#111922;overflow:hidden}.side-head{padding:10px 12px;border-bottom:1px solid #273747;display:flex;justify-content:space-between;align-items:center;gap:8px}.side-head b{font-size:15px}.counts{font-size:11px;color:var(--muted)}.hall-wrap{position:relative;aspect-ratio:4/3;background:#eef2f5;overflow:hidden}.scene{position:absolute;left:0;top:0;transform-origin:0 0}.seat{position:absolute;border:1px solid var(--seatline);background:var(--seat);border-radius:4px;cursor:pointer;min-width:5px;min-height:5px}.seat:hover{outline:2px solid var(--blue);z-index:90}.seat.sold{background:var(--sold);border-color:#4e5963;cursor:not-allowed}.seat.hold{background:var(--hold);border-color:#b47724;cursor:not-allowed}.seat.mine{background:var(--mine);border-color:#087aaa}.seat.blocked{background:var(--blocked);border-color:#111820;cursor:not-allowed}.seat.armed{outline:3px solid #e83f81;z-index:95}.decor{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;color:#fff;background:#838a92;border:1px solid rgba(255,255,255,.5);font-size:12px}.decor.text{background:transparent;border:0;color:#222}.race-control{border:1px solid #293846;border-radius:13px;background:#0b1219;padding:12px;display:flex;flex-direction:column;gap:10px}.race-control h3{margin:0;font-size:16px}.race-seat{font-size:24px;font-weight:900;color:#fff}.race-meta{font-size:12px;color:var(--muted);line-height:1.55}.resultbox{border:1px solid #2b3b4b;border-radius:10px;padding:9px;background:#101820}.resultrow{display:grid;grid-template-columns:80px 1fr;gap:6px;font-size:12px;padding:4px 0}.oktxt{color:var(--green)}.badtxt{color:var(--red)}.warntxt{color:var(--amber)}
+.telemetry{margin-top:14px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.telemetry h2{font-size:18px;margin:0 0 10px}.tablewrap{overflow:auto;max-height:310px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{padding:7px 8px;border-bottom:1px solid #253443;text-align:left}th{color:var(--muted);position:sticky;top:0;background:var(--panel)}
+.message{position:fixed;right:18px;bottom:18px;max-width:440px;border:1px solid #37506a;background:#132131;color:#dcecff;border-radius:12px;padding:10px 13px;display:none;z-index:500}.message.show{display:block}.message.bad{border-color:#74343a;background:#31161a;color:#ffd5d7}
+@media(max-width:1200px){.lamps{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.race-layout{grid-template-columns:1fr}.race-control{order:-1}.hall-wrap{aspect-ratio:16/10}}
+@media(max-width:650px){body{padding:8px}.lamps{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.pathbar{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.permissions{grid-template-columns:1fr}.top-actions{width:100%}.top-actions .btn{flex:1}}
+</style>
+</head>
+<body>
+<div class="deck">
+  <header class="top">
+    <div>
+      <h1>Gateway Flight Deck</h1>
+      <div class="subtitle">Демонстраційна панель запуску • Дніпровська філармонія ↔ Universal Ticket Gateway ↔ Ваш Адмін</div>
+    </div>
+    <div class="top-actions">
+      <button id="prepareBtn" class="btn red">Підготувати показ: OFF</button>
+      <button id="restoreBtn" class="btn">Відновити робочий стан</button>
+      <button id="refreshBtn" class="btn">Оновити прилади</button>
+    </div>
+  </header>
+
+  <section class="instrument">
+    <div class="lamps">
+      <div class="lampbox"><div id="lampPh" class="lamp on"></div><div class="lamp-title">ФІЛАРМОНІЯ</div><div id="valPh" class="lamp-value">перевірка…</div></div>
+      <div class="lampbox"><div id="lampGateway" class="lamp"></div><div class="lamp-title">GATEWAY</div><div id="valGateway" class="lamp-value">OFF</div></div>
+      <div class="lampbox"><div id="lampVa" class="lamp"></div><div class="lamp-title">VA</div><div id="valVa" class="lamp-value">не підключено</div></div>
+      <div class="lampbox"><div id="lampRead" class="lamp"></div><div class="lamp-title">READ</div><div id="valRead" class="lamp-value">заборонено</div></div>
+      <div class="lampbox"><div id="lampHold" class="lamp"></div><div class="lamp-title">HOLD</div><div id="valHold" class="lamp-value">заборонено</div></div>
+      <div class="lampbox"><div id="lampSale" class="lamp"></div><div class="lamp-title">SALE</div><div id="valSale" class="lamp-value">заборонено</div></div>
+      <div class="lampbox"><div id="lampReady" class="lamp"></div><div class="lamp-title">ГОТОВО</div><div id="valReady" class="lamp-value">очікування</div></div>
+    </div>
+    <div class="pathbar">
+      <div class="node"><strong>Філармонія</strong><span id="phNode">авторитетний стан залу</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><strong>Universal Gateway</strong><span>API <span id="gatewayMs" class="ms">—</span> ms</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><strong>Ваш Адмін</strong><span>зв'язок <span id="vaMs" class="ms">—</span> ms • повний шлях <span id="stateMs" class="ms">—</span> ms</span></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <article class="card">
+      <div class="step"><div><h2>Запуск Gateway</h2><div class="hint">Реально вмикає/вимикає маршрут Філармонії в standalone Gateway.</div></div><div class="stepno">1</div></div>
+      <div class="controls"><button id="gatewayBtn" class="btn green big">GATEWAY ON</button><div id="gatewayStatus" class="statusline">Спочатку підготуйте показ у стан OFF.</div></div>
+    </article>
+
+    <article class="card">
+      <div class="step"><div><h2>Підключення VA</h2><div class="hint">Активує реальний subject, adapter і credential VA. Після цього вимірюється зв'язок у мілісекундах.</div></div><div class="stepno">2</div></div>
+      <div class="controls"><button id="vaBtn" class="btn green big">ПІДКЛЮЧИТИ VA</button><div id="vaStatus" class="statusline">Gateway має бути ON.</div></div>
+    </article>
+
+    <article class="card">
+      <div class="step"><div><h2>Сеанс Філармонії</h2><div class="hint">Новий сеанс створюється штатним редактором Філармонії в одному з двох залів. Ця панель його підхоплює автоматично.</div></div><div class="stepno">3</div></div>
+      <div class="controls">
+        <div class="row"><a id="editorLink" class="btn primary" href="./seance-editor.html" target="_blank" rel="noopener">Створити новий сеанс ↗</a></div>
+        <div class="field"><label for="hallSelect">Зал</label><select id="hallSelect"><option value="">Завантаження…</option></select></div>
+        <div class="field"><label for="seanceSelect">Сеанс</label><select id="seanceSelect"><option value="">Оберіть сеанс…</option></select></div>
+        <div id="seanceStatus" class="statusline">Після публікації новий сеанс з'явиться тут.</div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="step"><div><h2>Дозволи на сеанс</h2><div class="hint">Кожна кнопка змінює реальний access_grant VA для обраного сеансу.</div></div><div class="stepno">4</div></div>
+      <div class="controls">
+        <div class="permissions">
+          <button id="readBtn" class="perm">READ</button>
+          <button id="holdBtn" class="perm">HOLD</button>
+          <button id="saleBtn" class="perm">SALE</button>
+        </div>
+        <button id="preflightBtn" class="btn primary">Контрольний STATE</button>
+        <div id="grantStatus" class="statusline">Оберіть сеанс.</div>
+      </div>
+    </article>
+  </section>
+
+  <section class="takeoff">
+    <div class="takeoff-head">
+      <div><h2>ЗЛІТ • один сеанс, одне місце, два реальні шляхи</h2><div class="hint">Ліворуч — внутрішній контур Філармонії без standalone Gateway. Праворуч — VA тільки через Universal Gateway.</div></div>
+      <div id="takeoffReady" class="ready-badge">НЕ ГОТОВО</div>
+    </div>
+    <div class="race-layout">
+      <div class="side">
+        <div class="side-head"><b>Філармонія • прямий контур</b><span id="countsPh" class="counts">—</span></div>
+        <div id="hallPh" class="hall-wrap"><div class="scene"></div></div>
+      </div>
+
+      <aside class="race-control">
+        <h3>Одночасний HOLD</h3>
+        <div class="hint">Клацніть одне й те саме вільне місце на обох схемах. Коли обидві сторони озброєні, запускаємо два запити одночасно.</div>
+        <div class="resultbox">
+          <div class="resultrow"><span>Місце Ф</span><b id="armedPh">—</b></div>
+          <div class="resultrow"><span>Місце VA</span><b id="armedVa">—</b></div>
+          <div class="resultrow"><span>Ціль</span><b id="raceSeat" class="race-seat">—</b></div>
+        </div>
+        <button id="raceBtn" class="btn amber big" disabled>ОДНОЧАСНИЙ HOLD</button>
+        <div id="raceResults" class="resultbox">
+          <div class="resultrow"><span>Ф</span><span id="resultPh">—</span></div>
+          <div class="resultrow"><span>VA</span><span id="resultVa">—</span></div>
+          <div class="resultrow"><span>Різниця</span><b id="raceDelta">—</b></div>
+          <div class="resultrow"><span>Висновок</span><b id="raceConclusion">—</b></div>
+        </div>
+        <button id="saleWinnerBtn" class="btn green big" disabled>ПРОДАТИ ПЕРЕМОЖЦЮ</button>
+        <button id="releaseRaceBtn" class="btn" disabled>Скасувати HOLD</button>
+        <div id="raceStatus" class="statusline">Зліт стане доступним після повної готовності.</div>
+      </aside>
+
+      <div class="side">
+        <div class="side-head"><b>Ваш Адмін • через Gateway</b><span id="countsVa" class="counts">—</span></div>
+        <div id="hallVa" class="hall-wrap"><div class="scene"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="telemetry">
+    <h2>Мілісекундна телеметрія Gateway</h2>
+    <div class="hint">Тут видно фактичний рух VA через standalone Gateway. Прямий запит Філармонії показується в блоці зльоту і не маскується під Gateway.</div>
+    <div class="tablewrap"><table><thead><tr><th>Старт</th><th>Операція</th><th>Місце</th><th>Результат</th><th>Код</th><th>Gateway ms</th><th>Connector ms</th><th>request_id</th></tr></thead><tbody id="telemetryBody"></tbody></table></div>
+  </section>
+</div>
+<div id="message" class="message"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../shared/app-config.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script>
+(() => {
+"use strict";
+const BACKEND = "http://127.0.0.1:8096";
+const db = window.PH_SUPABASE;
+const VENUE_ID = window.PhAuth?.config?.VENUE_ID || "filarmoniya";
+const $ = (id) => document.getElementById(id);
+let accessProfile = null;
+let halls = [];
+let seances = [];
+let state = null;
+let selectedSeance = "";
+let armedPh = "";
+let armedVa = "";
+let currentRaceId = "";
+let currentWinner = "";
+let lastDirectState = null;
+let lastVaState = null;
+let pollTimer = null;
+let listTimer = null;
+let messageTimer = null;
+
+function showMessage(text, bad=false){
+  const el=$("message"); el.textContent=text; el.className=`message show${bad?" bad":""}`;
+  clearTimeout(messageTimer); messageTimer=setTimeout(()=>el.className="message",5000);
+}
+function fmtMs(v){ const n=Number(v); return Number.isFinite(n)?n.toFixed(1):"—"; }
+function fmtTime(v){ if(!v)return"—"; const d=new Date(v); if(Number.isNaN(d.getTime()))return String(v); return d.toLocaleTimeString("uk-UA",{hour:"2-digit",minute:"2-digit",second:"2-digit",fractionalSecondDigits:3}); }
+function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+async function api(path, options={}){
+  const res=await fetch(`${BACKEND}${path}`,{cache:"no-store",...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok||data.ok===false){ const e=new Error(data.error||`HTTP ${res.status}`); e.status=res.status; e.data=data; throw e; }
+  return data;
+}
+function lamp(id,on,kind="on"){ const el=$(id); el.className=`lamp${on?` ${kind}`:""}`; }
+function setStatus(id,text,kind=""){ const el=$(id); el.textContent=text; el.className=`statusline${kind?` ${kind}`:""}`; }
+
+async function bootAuth(){
+  try{
+    accessProfile=await PhAuth.requirePermission("seance.view_all");
+    lamp("lampPh",true); $("valPh").textContent=`${accessProfile.display_name||"Філармонія"}`;
+    $("phNode").textContent="авторизовано • реальний DB";
+  }catch(e){ if(e.message==="authentication_required")return; lamp("lampPh",false,"bad"); $("valPh").textContent="немає доступу"; showMessage(`Філармонія: ${e.message}`,true); throw e; }
+}
+
+async function loadVenueLists(){
+  const [{data:hallRows,error:hallErr},{data:seanceRows,error:seanceErr}] = await Promise.all([
+    db.from("halls").select("id,venue_id,name,capacity,is_default,is_active").eq("venue_id",VENUE_ID).eq("is_active",true).order("is_default",{ascending:false}).order("name",{ascending:true}),
+    db.from("seances").select("id,show,date,time,hall_id,status,active,archived,updated_at").eq("venue_id",VENUE_ID).neq("status","archived").order("date",{ascending:true}).order("time",{ascending:true})
+  ]);
+  if(hallErr)throw hallErr; if(seanceErr)throw seanceErr;
+  halls=hallRows||[]; seances=seanceRows||[];
+  const oldHall=$("hallSelect").value;
+  $("hallSelect").innerHTML='<option value="">Усі зали</option>'+halls.map(h=>`<option value="${esc(h.id)}">${esc(h.name)} • ${Number(h.capacity||0)} місць</option>`).join("");
+  if(oldHall&&halls.some(h=>h.id===oldHall))$("hallSelect").value=oldHall;
+  renderSeanceSelect();
+}
+function renderSeanceSelect(){
+  const old=selectedSeance||$("seanceSelect").value;
+  const hall=$("hallSelect").value;
+  const rows=seances.filter(s=>!hall||s.hall_id===hall);
+  $("seanceSelect").innerHTML='<option value="">Оберіть сеанс…</option>'+rows.map(s=>{
+    const h=halls.find(x=>x.id===s.hall_id); const pub=s.active===true&&!s.archived; const mark=pub?"●":"○";
+    return `<option value="${esc(s.id)}">${mark} ${esc(s.date||"")} ${esc(String(s.time||"").slice(0,5))} • ${esc(s.show||s.id)} • ${esc(h?.name||s.hall_id||"")}</option>`;
+  }).join("");
+  if(old&&rows.some(s=>s.id===old)){ $("seanceSelect").value=old; selectedSeance=old; }
+  if(selectedSeance){ const s=seances.find(x=>x.id===selectedSeance); setStatus("seanceStatus",s?.active?"Опублікований реальний сеанс.":"Сеанс ще не опублікований.",s?.active?"ok":""); }
+}
+
+async function refreshState(){
+  const t0=performance.now();
+  try{
+    const data=await api(`/api/state?seance_ref=${encodeURIComponent(selectedSeance)}`);
+    state=data; $("gatewayMs").textContent=fmtMs(performance.now()-t0);
+    lamp("lampGateway",data.gateway.on); $("valGateway").textContent=data.gateway.on?"ONLINE":"OFF";
+    lamp("lampVa",data.va.connected); $("valVa").textContent=data.va.connected?"CONNECTED":"не підключено";
+    const g=data.grant||{};
+    lamp("lampRead",Boolean(g.read)); lamp("lampHold",Boolean(g.hold)); lamp("lampSale",Boolean(g.sale)); lamp("lampReady",Boolean(data.ready));
+    $("valRead").textContent=g.read?"дозволено":"заборонено"; $("valHold").textContent=g.hold?"дозволено":"заборонено"; $("valSale").textContent=g.sale?"дозволено":"заборонено"; $("valReady").textContent=data.ready?"ГОТОВО ДО ЗЛЬОТУ":"очікування";
+    $("gatewayBtn").textContent=data.gateway.on?"GATEWAY OFF":"GATEWAY ON"; $("gatewayBtn").className=`btn ${data.gateway.on?"red":"green"} big`;
+    $("vaBtn").textContent=data.va.connected?"ВІДКЛЮЧИТИ VA":"ПІДКЛЮЧИТИ VA"; $("vaBtn").className=`btn ${data.va.connected?"red":"green"} big`;
+    $("readBtn").classList.toggle("on",Boolean(g.read)); $("holdBtn").classList.toggle("on",Boolean(g.hold)); $("saleBtn").classList.toggle("on",Boolean(g.sale));
+    $("vaBtn").disabled=!data.gateway.on&&!data.va.connected;
+    const seanceOk=Boolean(selectedSeance&&seances.find(s=>s.id===selectedSeance)?.active);
+    $("readBtn").disabled=!data.va.connected||!seanceOk; $("holdBtn").disabled=!data.va.connected||!seanceOk; $("saleBtn").disabled=!data.va.connected||!seanceOk; $("preflightBtn").disabled=!g.read||!seanceOk;
+    $("takeoffReady").textContent=data.ready?"ГОТОВО":"НЕ ГОТОВО"; $("takeoffReady").classList.toggle("on",Boolean(data.ready));
+    if(data.ready){ await ensureHallStates(false); }
+    await refreshTelemetry();
+  }catch(e){ $("gatewayMs").textContent="—"; showMessage(`Flight Deck backend: ${e.message}`,true); }
+}
+
+async function probeVa(){
+  try{ const p=await api("/api/probe"); $("vaMs").textContent=fmtMs(p.duration_ms); setStatus("vaStatus",p.linked?`Зв'язок встановлено • ${fmtMs(p.duration_ms)} ms`:`Зв'язок не підтверджено • ${p.response_code}`,p.linked?"ok":"bad"); }
+  catch(e){ $("vaMs").textContent="—"; setStatus("vaStatus",e.message,"bad"); }
+}
+
+async function refreshTelemetry(){
+  try{ const d=await api(`/api/telemetry?seance_ref=${encodeURIComponent(selectedSeance)}`); $("telemetryBody").innerHTML=(d.events||[]).map(e=>`<tr><td>${esc(fmtTime(e.received_at))}</td><td>${esc(e.operation)}</td><td>${esc((e.seat_keys||[]).join(", "))}</td><td>${esc(e.status)}</td><td>${esc(e.response_code||e.failure_code||"")}</td><td>${esc(e.total_ms??"—")}</td><td>${esc(e.connector_ms??"—")}</td><td>${esc(e.request_id||"")}</td></tr>`).join(""); }
+  catch(e){ /* telemetry must not block panel */ }
+}
+
+function counts(payload){ const rows=Array.isArray(payload?.seats)?payload.seats:[]; const c={available:0,hold:0,mine:0,sold:0,blocked:0}; rows.forEach(r=>{const s=String(r.state||"available"); if(c[s]!==undefined)c[s]++;}); return c; }
+function seatKey(row){ return String(row?.seat_key||row?.key||""); }
+function geometrySeats(payload){ return Array.isArray(payload?.geometry?.seats)?payload.geometry.seats:[]; }
+function geometryDecor(payload){ return Array.isArray(payload?.geometry?.decor)?payload.geometry.decor:[]; }
+function renderHall(containerId,payload,pathName){
+  const wrap=$(containerId); const scene=wrap.querySelector(".scene"); if(!payload?.geometry){ scene.innerHTML=""; return; }
+  const width=Number(payload.geometry.width||1200), height=Number(payload.geometry.height||900); const scale=Math.min(wrap.clientWidth/width,wrap.clientHeight/height); const ox=(wrap.clientWidth-width*scale)/2, oy=(wrap.clientHeight-height*scale)/2;
+  scene.style.width=`${width}px`;scene.style.height=`${height}px`;scene.style.transform=`translate(${ox}px,${oy}px) scale(${scale})`;
+  const stateMap=new Map((payload.seats||[]).map(r=>[seatKey(r),r]));
+  const decor=geometryDecor(payload).map(d=>{const type=String(d.type||"");const cls=type==="text"?"decor text":"decor";return `<div class="${cls}" style="left:${Number(d.x||0)-Number(d.w||0)/2}px;top:${Number(d.y||0)-Number(d.h||0)/2}px;width:${Math.max(1,Number(d.w||0))}px;height:${Math.max(1,Number(d.h||0))}px;transform:rotate(${Number(d.rotate||0)}deg);background:${type==="text"?"transparent":esc(d.fill||"#818991")};color:${esc(d.textColor||d.color||"#fff")};font-size:${Math.max(7,Number(d.size||12))}px;z-index:${Number(d.z||10)}">${esc(d.text||"")}</div>`;}).join("");
+  const seats=geometrySeats(payload).map(g=>{const key=String(g.key||g.seat_key||"");const row=stateMap.get(key)||{};const st=String(row.state||"available");const armed=(pathName==="ph"?armedPh:armedVa)===key;const w=Math.max(9,Number(g.w||15)),h=Math.max(9,Number(g.h||15));return `<button type="button" class="seat ${esc(st)}${armed?" armed":""}" data-seat="${esc(key)}" data-path="${pathName}" title="${esc(key)} • ${esc(row.price??"")} грн • ${esc(st)}" style="left:${Number(g.x||0)-w/2}px;top:${Number(g.y||0)-h/2}px;width:${w}px;height:${h}px;transform:rotate(${Number(g.rotate||0)}deg);z-index:60"></button>`;}).join("");
+  scene.innerHTML=decor+seats;
+  const c=counts(payload); const countsEl=pathName==="ph"?$("countsPh"):$("countsVa"); countsEl.textContent=`вільно ${c.available} • HOLD ${c.hold+c.mine} • sold ${c.sold} • blocked ${c.blocked}`;
+}
+async function ensureHallStates(force=true){
+  if(!state?.ready||!selectedSeance)return;
+  try{
+    const [d,v]=await Promise.all([
+      api("/api/direct-state",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance})}),
+      api("/api/state-read",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance})})
+    ]);
+    lastDirectState=d.payload; lastVaState=v.payload; $("stateMs").textContent=fmtMs(v.duration_ms); renderHall("hallPh",lastDirectState,"ph");renderHall("hallVa",lastVaState,"va");
+    if(force)setStatus("raceStatus","Обидві схеми отримали авторитетний стан. Оберіть однакове місце.","ok");
+  }catch(e){ setStatus("raceStatus",`Схеми: ${e.message}`,"bad"); }
+}
+function updateRaceArm(){
+  $("armedPh").textContent=armedPh||"—"; $("armedVa").textContent=armedVa||"—"; const same=armedPh&&armedVa&&armedPh===armedVa; $("raceSeat").textContent=same?armedPh:"—"; $("raceBtn").disabled=!state?.ready||!same; if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");
+}
+function armSeat(path,key){
+  if(!state?.ready)return; const payload=path==="ph"?lastDirectState:lastVaState; const row=(payload?.seats||[]).find(r=>seatKey(r)===key); if(!row||String(row.state||"")!=="available"){showMessage("Для зльоту потрібне вільне місце.",true);return;} if(path==="ph")armedPh=key;else armedVa=key; updateRaceArm();
+}
+async function runRace(){
+  const seat=armedPh; if(!seat||seat!==armedVa)return; $("raceBtn").disabled=true; setStatus("raceStatus","Два HOLD відправлено одночасно…");
+  try{
+    const r=await api("/api/race/hold",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance,seat_key:seat})}); currentRaceId=r.race_id;currentWinner=r.winner; lastDirectState=r.direct_state;lastVaState=r.va_state;
+    const phOk=r.direct?.result==="succeeded",vaOk=r.va?.result==="succeeded";
+    $("resultPh").innerHTML=`<span class="${phOk?"oktxt":"badtxt"}">${esc(r.direct?.result||"—")}</span> • ${fmtMs(r.direct?.duration_ms)} ms • ${esc(r.direct?.response_code||"")}`;
+    $("resultVa").innerHTML=`<span class="${vaOk?"oktxt":"badtxt"}">${esc(r.va?.result||"—")}</span> • ${fmtMs(r.va?.duration_ms)} ms • ${esc(r.va?.response_code||"")}`;
+    const a=new Date(r.direct?.started_at||0).getTime(),b=new Date(r.va?.started_at||0).getTime(); $("raceDelta").textContent=Number.isFinite(a)&&Number.isFinite(b)?`${Math.abs(a-b)} ms`:`${fmtMs(r.wall_ms)} ms wall`;
+    const good=[phOk,vaOk].filter(Boolean).length===1; $("raceConclusion").textContent=good?`ПОДВІЙНИЙ HOLD НЕ ДОПУЩЕНО • переможець: ${r.winner==="philharmonic"?"Філармонія":"VA"}`:r.winner==="double"?"КРИТИЧНО: ОБИДВА HOLD":"ОБИДВА ВІДХИЛЕНО"; $("raceConclusion").className=good?"oktxt":"badtxt";
+    $("saleWinnerBtn").disabled=!good;$("releaseRaceBtn").disabled=!good;renderHall("hallPh",lastDirectState,"ph");renderHall("hallVa",lastVaState,"va");setStatus("raceStatus",good?"Конфлікт вирішено авторитетним станом Філармонії. Тепер підтверджуємо продаж переможцю.":"Потрібна перевірка результату.",good?"ok":"bad");await refreshTelemetry();
+  }catch(e){setStatus("raceStatus",e.message,"bad");showMessage(e.message,true);}
+}
+async function saleWinner(){
+  if(!currentRaceId)return; $("saleWinnerBtn").disabled=true;try{const r=await api("/api/race/sale",{method:"POST",body:JSON.stringify({race_id:currentRaceId})});lastDirectState=r.direct_state;lastVaState=r.va_state;renderHall("hallPh",lastDirectState,"ph");renderHall("hallVa",lastVaState,"va");const ok=r.sale?.result==="succeeded";setStatus("raceStatus",ok?`SALE підтверджено • ${r.winner==="philharmonic"?"Філармонія":"VA"} • місце SOLD`:`SALE: ${r.sale?.response_code||r.sale?.result}`,ok?"ok":"bad");$("releaseRaceBtn").disabled=true;await refreshTelemetry();}catch(e){setStatus("raceStatus",e.message,"bad");}
+}
+async function releaseRace(){if(!currentRaceId)return;try{await api("/api/race/release",{method:"POST",body:JSON.stringify({race_id:currentRaceId})});currentRaceId="";currentWinner="";armedPh="";armedVa="";$("saleWinnerBtn").disabled=true;$("releaseRaceBtn").disabled=true;await ensureHallStates();updateRaceArm();}catch(e){showMessage(e.message,true);}}
+
+$("prepareBtn").addEventListener("click",async()=>{ if(!confirm("Підготувати демонстрацію? Поточний робочий стан Gateway/VA буде збережено, а демонстраційний маршрут переведено в OFF."))return; try{await api("/api/demo/prepare-off",{method:"POST",body:"{}"});selectedSeance="";$("seanceSelect").value="";armedPh=armedVa="";currentRaceId="";$("vaMs").textContent="—";$("stateMs").textContent="—";setStatus("gatewayStatus","Початковий стан: тільки Філармонія. Gateway OFF.","ok");await refreshState();}catch(e){showMessage(e.message,true);}});
+$("restoreBtn").addEventListener("click",async()=>{if(!confirm("Відновити стан Gateway, VA та дозволів, який був до демонстрації?"))return;try{await api("/api/demo/restore",{method:"POST",body:"{}"});showMessage("Робочий стан відновлено.");await refreshState();}catch(e){showMessage(e.message,true);}});
+$("refreshBtn").addEventListener("click",async()=>{await loadVenueLists();await refreshState();});
+$("gatewayBtn").addEventListener("click",async()=>{try{const next=!state?.gateway?.on;await api("/api/gateway",{method:"POST",body:JSON.stringify({on:next})});setStatus("gatewayStatus",next?"Gateway увімкнено. Маршрут Філармонії активний.":"Gateway вимкнено.","ok");await refreshState();}catch(e){setStatus("gatewayStatus",e.message,"bad");}});
+$("vaBtn").addEventListener("click",async()=>{try{const next=!state?.va?.connected;await api("/api/va",{method:"POST",body:JSON.stringify({on:next})});await refreshState();if(next)await probeVa();else $("vaMs").textContent="—";}catch(e){setStatus("vaStatus",e.message,"bad");}});
+$("hallSelect").addEventListener("change",()=>renderSeanceSelect());
+$("seanceSelect").addEventListener("change",async()=>{selectedSeance=$("seanceSelect").value;armedPh=armedVa="";currentRaceId="";await refreshState();updateRaceArm();});
+async function togglePermission(permission,key){if(!selectedSeance)return;const current=Boolean(state?.grant?.[key]);try{await api("/api/grant",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance,permission,on:!current})});setStatus("grantStatus",`${permission.toUpperCase()} ${!current?"дозволено":"вимкнено"}.`,"ok");await refreshState();if(permission==="read"&&!current)await controlStateRead();}catch(e){setStatus("grantStatus",e.message,"bad");}}
+$("readBtn").addEventListener("click",()=>togglePermission("read","read"));$("holdBtn").addEventListener("click",()=>togglePermission("hold","hold"));$("saleBtn").addEventListener("click",()=>togglePermission("sale","sale"));
+async function controlStateRead(){try{const r=await api("/api/state-read",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance})});$("stateMs").textContent=fmtMs(r.duration_ms);setStatus("grantStatus",`STATE succeeded • ${r.response_code||"state_returned"} • ${fmtMs(r.duration_ms)} ms`,"ok");await refreshTelemetry();}catch(e){setStatus("grantStatus",e.message,"bad");}}
+$("preflightBtn").addEventListener("click",controlStateRead);
+$("hallPh").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("ph",s.dataset.seat)});$("hallVa").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("va",s.dataset.seat)});
+$("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListener("click",saleWinner);$("releaseRaceBtn").addEventListener("click",releaseRace);
+window.addEventListener("resize",()=>{if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");});
+
+(async()=>{
+  await bootAuth(); await loadVenueLists(); await refreshState();
+  pollTimer=setInterval(async()=>{await refreshState();if(state?.va?.connected)await probeVa();},5000);
+  listTimer=setInterval(loadVenueLists,4000);
+})().catch(e=>showMessage(e.message,true));
+})();
+</script>
+</body>
+</html>
