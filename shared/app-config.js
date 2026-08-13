@@ -13,7 +13,7 @@ window.PHILHARMONIC_APP_CONFIG = Object.freeze({
 
   VENUE_ID: "filarmoniya",
 
-  LOGIN_PATH: "/auth/login.html",
-  PLATFORM_ADMIN_PATH: "/admin/platform-admin.html",
-  SEANCE_EDITOR_PATH: "/admin/seance-editor.html"
+  LOGIN_PATH: "/VA-Philharmonic-Public-Demo/auth/login.html",
+PLATFORM_ADMIN_PATH: "/VA-Philharmonic-Public-Demo/admin/platform-admin.html",
+SEANCE_EDITOR_PATH: "/VA-Philharmonic-Public-Demo/admin/seance-editor.html"
 });
