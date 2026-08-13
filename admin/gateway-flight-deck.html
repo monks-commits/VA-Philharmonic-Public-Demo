@@ -35,7 +35,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
   <header class="top">
     <div>
       <h1>Gateway Flight Deck</h1>
-      <div class="subtitle">Демонстраційна панель запуску • Дніпровська філармонія ↔ Universal Ticket Gateway ↔ Ваш Адмін</div>
+      <div class="subtitle">Демонстраційна панель запуску • DEMO MODE без входу • Дніпровська філармонія ↔ Universal Ticket Gateway ↔ Ваш Адмін</div>
     </div>
     <div class="top-actions">
       <button id="prepareBtn" class="btn red">Підготувати показ: OFF</button>
@@ -186,11 +186,12 @@ function lamp(id,on,kind="on"){ const el=$(id); el.className=`lamp${on?` ${kind}
 function setStatus(id,text,kind=""){ const el=$(id); el.textContent=text; el.className=`statusline${kind?` ${kind}`:""}`; }
 
 async function bootAuth(){
-  try{
-    accessProfile=await PhAuth.requirePermission("seance.view_all");
-    lamp("lampPh",true); $("valPh").textContent=`${accessProfile.display_name||"Філармонія"}`;
-    $("phNode").textContent="авторизовано • реальний DB";
-  }catch(e){ if(e.message==="authentication_required")return; lamp("lampPh",false,"bad"); $("valPh").textContent="немає доступу"; showMessage(`Філармонія: ${e.message}`,true); throw e; }
+  // DEMO MODE: Flight Deck itself does not require employee login.
+  // Existing workspaces/editors keep their normal authentication.
+  accessProfile={display_name:"Філармонія",roles:["demo"]};
+  lamp("lampPh",true);
+  $("valPh").textContent="ГОТОВА";
+  $("phNode").textContent="DEMO MODE • реальний DB";
 }
 
 async function loadVenueLists(){
