@@ -35,7 +35,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
   <header class="top">
     <div>
       <h1>Gateway Flight Deck</h1>
-      <div class="subtitle">Демонстраційна панель запуску • DEMO MODE без входу • Дніпровська філармонія ↔ Universal Ticket Gateway ↔ Ваш Адмін</div>
+      <div class="subtitle">Демонстраційна панель запуску • прямий контур Філармонії працює без Docker • Gateway-контур активується через 8097</div>
     </div>
     <div class="top-actions">
       <button id="prepareBtn" class="btn red">Підготувати показ: OFF</button>
@@ -168,6 +168,8 @@ let lastVaState = null;
 let pollTimer = null;
 let listTimer = null;
 let messageTimer = null;
+let backendOnline = false;
+let currentGeometry = null;
 
 function showMessage(text, bad=false){
   const el=$("message"); el.textContent=text; el.className=`message show${bad?" bad":""}`;
@@ -177,10 +179,34 @@ function fmtMs(v){ const n=Number(v); return Number.isFinite(n)?n.toFixed(1):"�
 function fmtTime(v){ if(!v)return"—"; const d=new Date(v); if(Number.isNaN(d.getTime()))return String(v); return d.toLocaleTimeString("uk-UA",{hour:"2-digit",minute:"2-digit",second:"2-digit",fractionalSecondDigits:3}); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 async function api(path, options={}){
-  const res=await fetch(`${BACKEND}${path}`,{cache:"no-store",...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});
-  const data=await res.json().catch(()=>({}));
-  if(!res.ok||data.ok===false){ const e=new Error(data.error||`HTTP ${res.status}`); e.status=res.status; e.data=data; throw e; }
-  return data;
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), 1800);
+  try{
+    const res=await fetch(`${BACKEND}${path}`,{
+      cache:"no-store",
+      ...options,
+      signal:controller.signal,
+      headers:{"Content-Type":"application/json",...(options.headers||{})}
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.ok===false){
+      const e=new Error(data.error||`HTTP ${res.status}`);
+      e.status=res.status;e.data=data;throw e;
+    }
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function probeBackend(){
+  try{
+    const d=await api("/health");
+    backendOnline=Boolean(d?.ok);
+  }catch(_){
+    backendOnline=false;
+  }
+  return backendOnline;
 }
 function lamp(id,on,kind="on"){ const el=$(id); el.className=`lamp${on?` ${kind}`:""}`; }
 function setStatus(id,text,kind=""){ const el=$(id); el.textContent=text; el.className=`statusline${kind?` ${kind}`:""}`; }
@@ -195,16 +221,62 @@ async function bootAuth(){
 }
 
 async function loadVenueLists(){
-  const [{data:hallRows,error:hallErr},{data:seanceRows,error:seanceErr}] = await Promise.all([
-    db.from("halls").select("id,venue_id,name,capacity,is_default,is_active").eq("venue_id",VENUE_ID).eq("is_active",true).order("is_default",{ascending:false}).order("name",{ascending:true}),
-    db.from("seances").select("id,show,date,time,hall_id,status,active,archived,updated_at").eq("venue_id",VENUE_ID).neq("status","archived").order("date",{ascending:true}).order("time",{ascending:true})
-  ]);
-  if(hallErr)throw hallErr; if(seanceErr)throw seanceErr;
-  halls=hallRows||[]; seances=seanceRows||[];
+  const {data,error}=await db.rpc("list_public_seances",{p_venue_id:VENUE_ID});
+  if(error) throw error;
+
+  halls=Array.isArray(data?.halls)?data.halls:[];
+  seances=Array.isArray(data?.seances)?data.seances:[];
+
   const oldHall=$("hallSelect").value;
-  $("hallSelect").innerHTML='<option value="">Усі зали</option>'+halls.map(h=>`<option value="${esc(h.id)}">${esc(h.name)} • ${Number(h.capacity||0)} місць</option>`).join("");
+  $("hallSelect").innerHTML='<option value="">Усі зали</option>'+halls.map(h=>
+    `<option value="${esc(h.id)}">${esc(h.name)} • ${Number(h.capacity||0)} місць</option>`
+  ).join("");
+
   if(oldHall&&halls.some(h=>h.id===oldHall))$("hallSelect").value=oldHall;
   renderSeanceSelect();
+
+  if(!halls.length){
+    setStatus("seanceStatus","У публічному каталозі немає активних залів.","bad");
+  }
+}
+
+async function loadGeometryForHall(hallId){
+  const hall=halls.find(h=>h.id===hallId);
+  if(!hall)return null;
+  const file=String(hall.geometry_file||"").trim();
+  if(!file)return null;
+  const url=`../data/hall/${encodeURIComponent(file)}`;
+  const res=await fetch(url,{cache:"no-store"});
+  if(!res.ok)throw new Error(`geometry_http_${res.status}`);
+  return await res.json();
+}
+
+async function loadDirectPublicState(){
+  if(!selectedSeance){
+    lastDirectState=null;
+    $("hallPh").querySelector(".scene").innerHTML="";
+    $("countsPh").textContent="—";
+    return;
+  }
+
+  const s=seances.find(x=>x.id===selectedSeance);
+  if(!s)return;
+
+  const [{data,error},geometry]=await Promise.all([
+    db.rpc("get_public_hall_state",{p_seance_id:selectedSeance,p_hold_token:null}),
+    loadGeometryForHall(s.hall_id)
+  ]);
+
+  if(error)throw error;
+  currentGeometry=geometry;
+  lastDirectState={...(data||{}),geometry};
+  renderHall("hallPh",lastDirectState,"ph");
+  setStatus("raceStatus",
+    backendOnline
+      ? "Прямий контур Філармонії завантажено. Очікуємо готовність Gateway."
+      : "Прямий контур Філармонії працює без Docker. Gateway-контур зараз офлайн.",
+    "ok"
+  );
 }
 function renderSeanceSelect(){
   const old=selectedSeance||$("seanceSelect").value;
@@ -219,6 +291,38 @@ function renderSeanceSelect(){
 }
 
 async function refreshState(){
+  const online=await probeBackend();
+
+  if(!online){
+    state={
+      gateway:{on:false},
+      va:{connected:false},
+      grant:{read:false,hold:false,sale:false},
+      ready:false
+    };
+
+    lamp("lampGateway",false);$("valGateway").textContent="BACKEND OFFLINE";
+    lamp("lampVa",false);$("valVa").textContent="не підключено";
+    lamp("lampRead",false);lamp("lampHold",false);lamp("lampSale",false);lamp("lampReady",false);
+    $("valRead").textContent="очікує Gateway";
+    $("valHold").textContent="очікує Gateway";
+    $("valSale").textContent="очікує Gateway";
+    $("valReady").textContent="очікування";
+    $("gatewayMs").textContent="—";$("vaMs").textContent="—";$("stateMs").textContent="—";
+    $("gatewayBtn").textContent="GATEWAY ON";$("gatewayBtn").className="btn green big";
+    $("vaBtn").textContent="ПІДКЛЮЧИТИ VA";$("vaBtn").className="btn green big";
+    $("vaBtn").disabled=true;
+    $("readBtn").disabled=true;$("holdBtn").disabled=true;$("saleBtn").disabled=true;$("preflightBtn").disabled=true;
+    $("readBtn").classList.remove("on");$("holdBtn").classList.remove("on");$("saleBtn").classList.remove("on");
+    $("takeoffReady").textContent="GATEWAY OFFLINE";$("takeoffReady").classList.remove("on");
+    setStatus("gatewayStatus","Docker/8097 зараз офлайн. Прямий контур Філармонії доступний без нього.","bad");
+
+    if(selectedSeance){
+      try{await loadDirectPublicState();}catch(e){setStatus("raceStatus",`Філармонія: ${e.message}`,"bad");}
+    }
+    return;
+  }
+
   const t0=performance.now();
   try{
     const data=await api(`/api/state?seance_ref=${encodeURIComponent(selectedSeance)}`);
@@ -236,10 +340,14 @@ async function refreshState(){
     $("readBtn").disabled=!data.va.connected||!seanceOk; $("holdBtn").disabled=!data.va.connected||!seanceOk; $("saleBtn").disabled=!data.va.connected||!seanceOk; $("preflightBtn").disabled=!g.read||!seanceOk;
     $("takeoffReady").textContent=data.ready?"ГОТОВО":"НЕ ГОТОВО"; $("takeoffReady").classList.toggle("on",Boolean(data.ready));
     if(data.ready){ await ensureHallStates(false); }
+    else if(selectedSeance){ await loadDirectPublicState(); }
     await refreshTelemetry();
-  }catch(e){ $("gatewayMs").textContent="—"; showMessage(`Flight Deck backend: ${e.message}`,true); }
+  }catch(e){
+    backendOnline=false;
+    setStatus("gatewayStatus",`8097: ${e.message}`,"bad");
+    if(selectedSeance){try{await loadDirectPublicState();}catch(_){}}
+  }
 }
-
 async function probeVa(){
   try{ const p=await api("/api/probe"); $("vaMs").textContent=fmtMs(p.duration_ms); setStatus("vaStatus",p.linked?`Зв'язок встановлено • ${fmtMs(p.duration_ms)} ms`:`Зв'язок не підтверджено • ${p.response_code}`,p.linked?"ok":"bad"); }
   catch(e){ $("vaMs").textContent="—"; setStatus("vaStatus",e.message,"bad"); }
@@ -279,7 +387,18 @@ function updateRaceArm(){
   $("armedPh").textContent=armedPh||"—"; $("armedVa").textContent=armedVa||"—"; const same=armedPh&&armedVa&&armedPh===armedVa; $("raceSeat").textContent=same?armedPh:"—"; $("raceBtn").disabled=!state?.ready||!same; if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");
 }
 function armSeat(path,key){
-  if(!state?.ready)return; const payload=path==="ph"?lastDirectState:lastVaState; const row=(payload?.seats||[]).find(r=>seatKey(r)===key); if(!row||String(row.state||"")!=="available"){showMessage("Для зльоту потрібне вільне місце.",true);return;} if(path==="ph")armedPh=key;else armedVa=key; updateRaceArm();
+  if(path==="va"&&!state?.ready)return;
+  if(path==="ph"&&!lastDirectState)return;
+  const payload=path==="ph"?lastDirectState:lastVaState;
+  const row=(payload?.seats||[]).find(r=>seatKey(r)===key);
+  if(!row||String(row.state||"")!=="available"){
+    showMessage("Потрібне вільне місце.",true);return;
+  }
+  if(path==="ph")armedPh=key;else armedVa=key;
+  updateRaceArm();
+  if(path==="ph"&&!backendOnline){
+    setStatus("raceStatus",`Філармонія: вибрано ${key}. Gateway-контур стане доступним після запуску 8097.`,"ok");
+  }
 }
 async function runRace(){
   const seat=armedPh; if(!seat||seat!==armedVa)return; $("raceBtn").disabled=true; setStatus("raceStatus","Два HOLD відправлено одночасно…");
@@ -298,13 +417,13 @@ async function saleWinner(){
 }
 async function releaseRace(){if(!currentRaceId)return;try{await api("/api/race/release",{method:"POST",body:JSON.stringify({race_id:currentRaceId})});currentRaceId="";currentWinner="";armedPh="";armedVa="";$("saleWinnerBtn").disabled=true;$("releaseRaceBtn").disabled=true;await ensureHallStates();updateRaceArm();}catch(e){showMessage(e.message,true);}}
 
-$("prepareBtn").addEventListener("click",async()=>{ if(!confirm("Підготувати демонстрацію? Поточний робочий стан Gateway/VA буде збережено, а демонстраційний маршрут переведено в OFF."))return; try{await api("/api/demo/prepare-off",{method:"POST",body:"{}"});selectedSeance="";$("seanceSelect").value="";armedPh=armedVa="";currentRaceId="";$("vaMs").textContent="—";$("stateMs").textContent="—";setStatus("gatewayStatus","Початковий стан: тільки Філармонія. Gateway OFF.","ok");await refreshState();}catch(e){showMessage(e.message,true);}});
-$("restoreBtn").addEventListener("click",async()=>{if(!confirm("Відновити стан Gateway, VA та дозволів, який був до демонстрації?"))return;try{await api("/api/demo/restore",{method:"POST",body:"{}"});showMessage("Робочий стан відновлено.");await refreshState();}catch(e){showMessage(e.message,true);}});
+$("prepareBtn").addEventListener("click",async()=>{ if(!backendOnline){showMessage("8097 офлайн. Підготовка Gateway стане доступною після запуску Docker.",true);return;} if(!confirm("Підготувати демонстрацію? Поточний робочий стан Gateway/VA буде збережено, а демонстраційний маршрут переведено в OFF."))return; try{await api("/api/demo/prepare-off",{method:"POST",body:"{}"});selectedSeance="";$("seanceSelect").value="";armedPh=armedVa="";currentRaceId="";$("vaMs").textContent="—";$("stateMs").textContent="—";setStatus("gatewayStatus","Початковий стан: тільки Філармонія. Gateway OFF.","ok");await refreshState();}catch(e){showMessage(e.message,true);}});
+$("restoreBtn").addEventListener("click",async()=>{if(!backendOnline){showMessage("8097 офлайн. Немає backend-стану для відновлення.",true);return;}if(!confirm("Відновити стан Gateway, VA та дозволів, який був до демонстрації?"))return;try{await api("/api/demo/restore",{method:"POST",body:"{}"});showMessage("Робочий стан відновлено.");await refreshState();}catch(e){showMessage(e.message,true);}});
 $("refreshBtn").addEventListener("click",async()=>{await loadVenueLists();await refreshState();});
-$("gatewayBtn").addEventListener("click",async()=>{try{const next=!state?.gateway?.on;await api("/api/gateway",{method:"POST",body:JSON.stringify({on:next})});setStatus("gatewayStatus",next?"Gateway увімкнено. Маршрут Філармонії активний.":"Gateway вимкнено.","ok");await refreshState();}catch(e){setStatus("gatewayStatus",e.message,"bad");}});
-$("vaBtn").addEventListener("click",async()=>{try{const next=!state?.va?.connected;await api("/api/va",{method:"POST",body:JSON.stringify({on:next})});await refreshState();if(next)await probeVa();else $("vaMs").textContent="—";}catch(e){setStatus("vaStatus",e.message,"bad");}});
-$("hallSelect").addEventListener("change",()=>renderSeanceSelect());
-$("seanceSelect").addEventListener("change",async()=>{selectedSeance=$("seanceSelect").value;armedPh=armedVa="";currentRaceId="";await refreshState();updateRaceArm();});
+$("gatewayBtn").addEventListener("click",async()=>{if(!backendOnline){showMessage("Gateway backend 8097 офлайн. Прямий контур Філармонії при цьому працює.",true);return;}try{const next=!state?.gateway?.on;await api("/api/gateway",{method:"POST",body:JSON.stringify({on:next})});setStatus("gatewayStatus",next?"Gateway увімкнено. Маршрут Філармонії активний.":"Gateway вимкнено.","ok");await refreshState();}catch(e){setStatus("gatewayStatus",e.message,"bad");}});
+$("vaBtn").addEventListener("click",async()=>{if(!backendOnline){showMessage("VA підключається тільки через backend 8097.",true);return;}try{const next=!state?.va?.connected;await api("/api/va",{method:"POST",body:JSON.stringify({on:next})});await refreshState();if(next)await probeVa();else $("vaMs").textContent="—";}catch(e){setStatus("vaStatus",e.message,"bad");}});
+$("hallSelect").addEventListener("change",()=>{selectedSeance="";renderSeanceSelect();$("hallPh").querySelector(".scene").innerHTML="";$("countsPh").textContent="—";});
+$("seanceSelect").addEventListener("change",async()=>{selectedSeance=$("seanceSelect").value;armedPh=armedVa="";currentRaceId="";if(selectedSeance){try{await loadDirectPublicState();}catch(e){setStatus("raceStatus",e.message,"bad");}}await refreshState();updateRaceArm();});
 async function togglePermission(permission,key){if(!selectedSeance)return;const current=Boolean(state?.grant?.[key]);try{await api("/api/grant",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance,permission,on:!current})});setStatus("grantStatus",`${permission.toUpperCase()} ${!current?"дозволено":"вимкнено"}.`,"ok");await refreshState();if(permission==="read"&&!current)await controlStateRead();}catch(e){setStatus("grantStatus",e.message,"bad");}}
 $("readBtn").addEventListener("click",()=>togglePermission("read","read"));$("holdBtn").addEventListener("click",()=>togglePermission("hold","hold"));$("saleBtn").addEventListener("click",()=>togglePermission("sale","sale"));
 async function controlStateRead(){try{const r=await api("/api/state-read",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance})});$("stateMs").textContent=fmtMs(r.duration_ms);setStatus("grantStatus",`STATE succeeded • ${r.response_code||"state_returned"} • ${fmtMs(r.duration_ms)} ms`,"ok");await refreshTelemetry();}catch(e){setStatus("grantStatus",e.message,"bad");}}
@@ -314,9 +433,22 @@ $("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListen
 window.addEventListener("resize",()=>{if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");});
 
 (async()=>{
-  await bootAuth(); await loadVenueLists(); await refreshState();
-  pollTimer=setInterval(async()=>{await refreshState();if(state?.va?.connected)await probeVa();},5000);
-  listTimer=setInterval(loadVenueLists,4000);
+  await bootAuth();
+  try{
+    await loadVenueLists();
+  }catch(e){
+    $("hallSelect").innerHTML='<option value="">Каталог недоступний</option>';
+    setStatus("seanceStatus",`Публічний каталог: ${e.message}`,"bad");
+    showMessage("Спочатку виконайте SQL-файл flight-deck-public-catalog.sql у Supabase.",true);
+  }
+  await refreshState();
+  pollTimer=setInterval(async()=>{
+    await refreshState();
+    if(backendOnline&&state?.va?.connected)await probeVa();
+  },5000);
+  listTimer=setInterval(async()=>{
+    try{await loadVenueLists();}catch(_){}
+  },15000);
 })().catch(e=>showMessage(e.message,true));
 })();
 </script>
