@@ -24,9 +24,10 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.step{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.stepno{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#263544;color:#c9d7e6;font-weight:900}.card h2{font-size:17px;margin:0}.hint{color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}.controls{margin-top:12px;display:grid;gap:8px}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.field{display:grid;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:700}.field select,.field input{width:100%;min-height:42px;border:1px solid #334657;border-radius:9px;background:#0e161e;color:var(--text);padding:8px 10px}.statusline{min-height:18px;color:var(--muted);font-size:12px}.statusline.ok{color:var(--green)}.statusline.bad{color:var(--red)}
 .permissions{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.perm{border:1px solid #354657;border-radius:10px;background:#101820;padding:10px;text-align:center;cursor:pointer;color:var(--text);font-weight:850}.perm.on{border-color:#298e51;background:#163522;color:#8ef0b2}.perm:disabled{opacity:.4;cursor:not-allowed}
 .takeoff{border:1px solid #314257;background:#0d141c;border-radius:18px;overflow:hidden}.takeoff-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #293846;background:#111a24}.takeoff-head h2{margin:0;font-size:20px}.ready-badge{border:1px solid #3b4b5b;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:850;color:var(--muted)}.ready-badge.on{color:#8ef0b2;border-color:#288f51;background:#153622}.race-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px minmax(0,1fr);gap:10px;padding:10px}.side{border:1px solid #273747;border-radius:13px;background:#111922;overflow:hidden}.side-head{padding:10px 12px;border-bottom:1px solid #273747;display:flex;justify-content:space-between;align-items:center;gap:8px}.side-head b{font-size:15px}.counts{font-size:11px;color:var(--muted)}.hall-wrap{position:relative;aspect-ratio:4/3;background:#eef2f5;overflow:hidden}.scene{position:absolute;left:0;top:0;transform-origin:0 0}.seat{position:absolute;border:1px solid var(--seatline);background:var(--seat);border-radius:4px;cursor:pointer;min-width:5px;min-height:5px}.seat:hover{outline:2px solid var(--blue);z-index:90}.seat.sold{background:var(--sold);border-color:#4e5963;cursor:not-allowed}.seat.hold{background:var(--hold);border-color:#b47724;cursor:not-allowed}.seat.mine{background:var(--mine);border-color:#087aaa}.seat.blocked{background:var(--blocked);border-color:#111820;cursor:not-allowed}.seat.armed{outline:3px solid #e83f81;z-index:95}.decor{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;white-space:nowrap;color:#fff;background:#838a92;border:1px solid rgba(255,255,255,.5);font-size:12px}.decor.text{background:transparent;border:0;color:#222}.race-control{border:1px solid #293846;border-radius:13px;background:#0b1219;padding:12px;display:flex;flex-direction:column;gap:10px}.race-control h3{margin:0;font-size:16px}.race-seat{font-size:24px;font-weight:900;color:#fff}.race-meta{font-size:12px;color:var(--muted);line-height:1.55}.resultbox{border:1px solid #2b3b4b;border-radius:10px;padding:9px;background:#101820}.resultrow{display:grid;grid-template-columns:80px 1fr;gap:6px;font-size:12px;padding:4px 0}.oktxt{color:var(--green)}.badtxt{color:var(--red)}.warntxt{color:var(--amber)}
-.telemetry{margin-top:14px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.telemetry h2{font-size:18px;margin:0 0 10px}.tablewrap{overflow:auto;max-height:310px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{padding:7px 8px;border-bottom:1px solid #253443;text-align:left}th{color:var(--muted);position:sticky;top:0;background:var(--panel)}
+.telemetry{margin-top:14px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.telemetry h2{font-size:18px;margin:0 0 10px}.direct-meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 12px}.meter{border:1px solid #2b3b4b;border-radius:10px;background:#0d151d;padding:9px 11px}.meter span{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.meter b{font-variant-numeric:tabular-nums;font-size:14px}.tablewrap{overflow:auto;max-height:310px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{padding:7px 8px;border-bottom:1px solid #253443;text-align:left}th{color:var(--muted);position:sticky;top:0;background:var(--panel)}
 .message{position:fixed;right:18px;bottom:18px;max-width:440px;border:1px solid #37506a;background:#132131;color:#dcecff;border-radius:12px;padding:10px 13px;display:none;z-index:500}.message.show{display:block}.message.bad{border-color:#74343a;background:#31161a;color:#ffd5d7}
 @media(max-width:1200px){.lamps{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.race-layout{grid-template-columns:1fr}.race-control{order:-1}.hall-wrap{aspect-ratio:16/10}}
+@media(max-width:850px){.direct-meters{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:650px){body{padding:8px}.lamps{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.pathbar{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.permissions{grid-template-columns:1fr}.top-actions{width:100%}.top-actions .btn{flex:1}}
 </style>
 </head>
@@ -118,6 +119,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
           <div class="resultrow"><span>Ціль</span><b id="raceSeat" class="race-seat">—</b></div>
         </div>
         <div class="hint" style="margin-top:2px">Перевірка прямого контуру без Docker:</div>
+        <button id="directStateBtn" class="btn big">STATE ФІЛАРМОНІЇ</button>
         <button id="directHoldBtn" class="btn primary big" disabled>HOLD ФІЛАРМОНІЇ</button>
         <button id="directReleaseBtn" class="btn" disabled>ЗВІЛЬНИТИ HOLD Ф</button>
         <button id="raceBtn" class="btn amber big" disabled>ОДНОЧАСНИЙ HOLD</button>
@@ -140,9 +142,33 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
   </section>
 
   <section class="telemetry">
-    <h2>Мілісекундна телеметрія Gateway</h2>
-    <div class="hint">Тут видно фактичний рух VA через standalone Gateway. Прямий запит Філармонії показується в блоці зльоту і не маскується під Gateway.</div>
-    <div class="tablewrap"><table><thead><tr><th>Старт</th><th>Операція</th><th>Місце</th><th>Результат</th><th>Код</th><th>Gateway ms</th><th>Connector ms</th><th>request_id</th></tr></thead><tbody id="telemetryBody"></tbody></table></div>
+    <h2>Телеметрія Flight Deck</h2>
+    <div class="hint">Лівий контур Філармонії вимірюється прямо в браузері. Коли 8097 буде ONLINE, у цій самій таблиці з'являться операції VA через Universal Gateway.</div>
+
+    <div class="direct-meters">
+      <div class="meter"><span>STATE Філармонії</span><b id="directStateMs">— ms</b></div>
+      <div class="meter"><span>Остання операція</span><b id="directLastOp">—</b></div>
+      <div class="meter"><span>Вибране місце</span><b id="directSeatState">—</b></div>
+      <div class="meter"><span>Стан залу</span><b id="directCountSummary">—</b></div>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Контур</th>
+            <th>Старт</th>
+            <th>Операція</th>
+            <th>Місце</th>
+            <th>Стан</th>
+            <th>Результат</th>
+            <th>ms</th>
+            <th>Код / request_id</th>
+          </tr>
+        </thead>
+        <tbody id="telemetryBody"></tbody>
+      </table>
+    </div>
   </section>
 </div>
 <div id="message" class="message"></div>
@@ -175,6 +201,8 @@ let backendOnline = false;
 let currentGeometry = null;
 let directHoldToken = "";
 let directHoldSeat = "";
+let directEvents = [];
+let gatewayEvents = [];
 
 function showMessage(text, bad=false){
   const el=$("message"); el.textContent=text; el.className=`message show${bad?" bad":""}`;
@@ -183,6 +211,81 @@ function showMessage(text, bad=false){
 function fmtMs(v){ const n=Number(v); return Number.isFinite(n)?n.toFixed(1):"—"; }
 function fmtTime(v){ if(!v)return"—"; const d=new Date(v); if(Number.isNaN(d.getTime()))return String(v); return d.toLocaleTimeString("uk-UA",{hour:"2-digit",minute:"2-digit",second:"2-digit",fractionalSecondDigits:3}); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function nowIso(){ return new Date().toISOString(); }
+
+function pushDirectEvent({operation,seat="",before="",after="",result="succeeded",ms=0,code=""}){
+  directEvents.unshift({
+    contour:"Філармонія",
+    started_at:nowIso(),
+    operation,
+    seat,
+    state:before||after ? `${before||"—"} → ${after||"—"}` : "—",
+    result,
+    ms:Number(ms)||0,
+    code
+  });
+  directEvents=directEvents.slice(0,80);
+  renderTelemetry();
+}
+
+function renderTelemetry(){
+  const directRows=directEvents.map(e=>({
+    contour:e.contour,
+    started_at:e.started_at,
+    operation:e.operation,
+    seat:e.seat,
+    state:e.state,
+    result:e.result,
+    ms:e.ms,
+    code:e.code
+  }));
+
+  const gatewayRows=gatewayEvents.map(e=>({
+    contour:"VA → Gateway",
+    started_at:e.received_at,
+    operation:e.operation,
+    seat:(e.seat_keys||[]).join(", "),
+    state:"—",
+    result:e.status,
+    ms:e.total_ms??"—",
+    code:e.request_id||e.response_code||e.failure_code||""
+  }));
+
+  const rows=[...directRows,...gatewayRows]
+    .sort((a,b)=>new Date(b.started_at||0)-new Date(a.started_at||0))
+    .slice(0,120);
+
+  $("telemetryBody").innerHTML=rows.length
+    ? rows.map(e=>`<tr>
+        <td>${esc(e.contour)}</td>
+        <td>${esc(fmtTime(e.started_at))}</td>
+        <td>${esc(e.operation)}</td>
+        <td>${esc(e.seat||"—")}</td>
+        <td>${esc(e.state||"—")}</td>
+        <td class="${e.result==="succeeded"?"oktxt":e.result==="rejected"||e.result==="error"?"badtxt":""}">${esc(e.result||"—")}</td>
+        <td>${esc(typeof e.ms==="number"?fmtMs(e.ms):e.ms)} ms</td>
+        <td>${esc(e.code||"")}</td>
+      </tr>`).join("")
+    : `<tr><td colspan="8" style="color:var(--muted)">Операцій ще немає.</td></tr>`;
+}
+
+function directSeatStateLabel(){
+  if(!armedPh||!lastDirectState)return "—";
+  const row=(lastDirectState.seats||[]).find(r=>seatKey(r)===armedPh);
+  return row ? `${armedPh} • ${String(row.state||"available")}` : armedPh;
+}
+
+function updateDirectMeters(lastOp=""){
+  if(lastOp)$("directLastOp").textContent=lastOp;
+  $("directSeatState").textContent=directSeatStateLabel();
+  if(lastDirectState){
+    const c=counts(lastDirectState);
+    $("directCountSummary").textContent=`${c.available} вільно • ${c.hold+c.mine} HOLD • ${c.sold} sold`;
+  }else{
+    $("directCountSummary").textContent="—";
+  }
+}
 async function api(path, options={}){
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(), 1800);
@@ -256,32 +359,66 @@ async function loadGeometryForHall(hallId){
   return await res.json();
 }
 
-async function loadDirectPublicState(){
+async function loadDirectPublicState(logEvent=false){
   if(!selectedSeance){
     lastDirectState=null;
     $("hallPh").querySelector(".scene").innerHTML="";
     $("countsPh").textContent="—";
+    updateDirectMeters();
     return;
   }
 
   const s=seances.find(x=>x.id===selectedSeance);
   if(!s)return;
 
-  const [{data,error},geometry]=await Promise.all([
-    db.rpc("get_public_hall_state",{p_seance_id:selectedSeance,p_hold_token:directHoldToken||null}),
-    loadGeometryForHall(s.hall_id)
-  ]);
+  const t0=performance.now();
+  try{
+    const [{data,error},geometry]=await Promise.all([
+      db.rpc("get_public_hall_state",{p_seance_id:selectedSeance,p_hold_token:directHoldToken||null}),
+      loadGeometryForHall(s.hall_id)
+    ]);
 
-  if(error)throw error;
-  currentGeometry=geometry;
-  lastDirectState={...(data||{}),geometry};
-  renderHall("hallPh",lastDirectState,"ph");
-  setStatus("raceStatus",
-    backendOnline
-      ? "Прямий контур Філармонії завантажено. Очікуємо готовність Gateway."
-      : "Прямий контур Філармонії працює без Docker. Gateway-контур зараз офлайн.",
-    "ok"
-  );
+    if(error)throw error;
+
+    const elapsed=performance.now()-t0;
+    currentGeometry=geometry;
+    lastDirectState={...(data||{}),geometry};
+    renderHall("hallPh",lastDirectState,"ph");
+    $("directStateMs").textContent=`${fmtMs(elapsed)} ms`;
+    updateDirectMeters(logEvent?"STATE":"");
+
+    if(logEvent){
+      pushDirectEvent({
+        operation:"STATE",
+        seat:armedPh||"",
+        before:"",
+        after:armedPh ? ((lastDirectState.seats||[]).find(r=>seatKey(r)===armedPh)?.state||"") : "",
+        result:"succeeded",
+        ms:elapsed,
+        code:"get_public_hall_state"
+      });
+    }
+
+    setStatus("raceStatus",
+      backendOnline
+        ? "Прямий контур Філармонії завантажено. Очікуємо готовність Gateway."
+        : "Прямий контур Філармонії працює без Docker. Gateway-контур зараз офлайн.",
+      "ok"
+    );
+  }catch(e){
+    const elapsed=performance.now()-t0;
+    $("directStateMs").textContent=`${fmtMs(elapsed)} ms`;
+    if(logEvent){
+      pushDirectEvent({
+        operation:"STATE",
+        seat:armedPh||"",
+        result:"error",
+        ms:elapsed,
+        code:e.message
+      });
+    }
+    throw e;
+  }
 }
 function renderSeanceSelect(){
   const old=selectedSeance||$("seanceSelect").value;
@@ -359,8 +496,19 @@ async function probeVa(){
 }
 
 async function refreshTelemetry(){
-  try{ const d=await api(`/api/telemetry?seance_ref=${encodeURIComponent(selectedSeance)}`); $("telemetryBody").innerHTML=(d.events||[]).map(e=>`<tr><td>${esc(fmtTime(e.received_at))}</td><td>${esc(e.operation)}</td><td>${esc((e.seat_keys||[]).join(", "))}</td><td>${esc(e.status)}</td><td>${esc(e.response_code||e.failure_code||"")}</td><td>${esc(e.total_ms??"—")}</td><td>${esc(e.connector_ms??"—")}</td><td>${esc(e.request_id||"")}</td></tr>`).join(""); }
-  catch(e){ /* telemetry must not block panel */ }
+  if(!backendOnline){
+    gatewayEvents=[];
+    renderTelemetry();
+    return;
+  }
+  try{
+    const d=await api(`/api/telemetry?seance_ref=${encodeURIComponent(selectedSeance)}`);
+    gatewayEvents=Array.isArray(d.events)?d.events:[];
+    renderTelemetry();
+  }catch(e){
+    gatewayEvents=[];
+    renderTelemetry();
+  }
 }
 
 function counts(payload){ const rows=Array.isArray(payload?.seats)?payload.seats:[]; const c={available:0,hold:0,mine:0,sold:0,blocked:0}; rows.forEach(r=>{const s=String(r.state||"available"); if(c[s]!==undefined)c[s]++;}); return c; }
@@ -394,6 +542,7 @@ function updateRaceArm(){
   const same=armedPh&&armedVa&&armedPh===armedVa;
   $("raceSeat").textContent=same?armedPh:"—";
   $("raceBtn").disabled=!state?.ready||!same;
+  $("directStateBtn").disabled=!selectedSeance;
   $("directHoldBtn").disabled=!armedPh||Boolean(directHoldToken);
   $("directReleaseBtn").disabled=!directHoldToken;
   if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");
@@ -409,6 +558,7 @@ function armSeat(path,key){
   }
   if(path==="ph")armedPh=key;else armedVa=key;
   updateRaceArm();
+  if(path==="ph")updateDirectMeters("SEAT SELECT");
   if(path==="ph"&&!backendOnline){
     setStatus("raceStatus",`Філармонія: вибрано ${key}. Gateway-контур стане доступним після запуску 8097.`,"ok");
   }
@@ -417,24 +567,55 @@ function armSeat(path,key){
 async function holdDirectSeat(){
   if(!selectedSeance||!armedPh||directHoldToken)return;
   const token=crypto.randomUUID();
-  setStatus("raceStatus",`Філармонія: HOLD ${armedPh}…`);
+  const seat=armedPh;
+  const beforeRow=(lastDirectState?.seats||[]).find(r=>seatKey(r)===seat);
+  const before=String(beforeRow?.state||"available");
+  const t0=performance.now();
+
+  setStatus("raceStatus",`Філармонія: HOLD ${seat}…`);
   try{
     const {data,error}=await db.rpc("set_public_hold",{
       p_seance_id:selectedSeance,
-      p_seat_keys:[armedPh],
+      p_seat_keys:[seat],
       p_hold_token:token
     });
     if(error)throw error;
+
+    const elapsed=performance.now()-t0;
     directHoldToken=token;
-    directHoldSeat=armedPh;
+    directHoldSeat=seat;
     lastDirectState={...(data||{}),geometry:currentGeometry};
     renderHall("hallPh",lastDirectState,"ph");
     updateRaceArm();
-    setStatus("raceStatus",`Філармонія: ${directHoldSeat} реально поставлено в HOLD на 15 хв.`,"ok");
+    updateDirectMeters("HOLD");
+
+    const afterRow=(lastDirectState.seats||[]).find(r=>seatKey(r)===seat);
+    pushDirectEvent({
+      operation:"HOLD",
+      seat,
+      before,
+      after:String(afterRow?.state||"mine"),
+      result:"succeeded",
+      ms:elapsed,
+      code:"set_public_hold"
+    });
+
+    setStatus("raceStatus",`Філармонія: ${seat} реально поставлено в HOLD • ${fmtMs(elapsed)} ms.`,"ok");
   }catch(e){
+    const elapsed=performance.now()-t0;
     directHoldToken="";
     directHoldSeat="";
     updateRaceArm();
+    updateDirectMeters("HOLD ERROR");
+    pushDirectEvent({
+      operation:"HOLD",
+      seat,
+      before,
+      after:before,
+      result:"error",
+      ms:elapsed,
+      code:e.message
+    });
     setStatus("raceStatus",`HOLD Філармонії: ${e.message}`,"bad");
     showMessage(e.message,true);
   }
@@ -444,20 +625,52 @@ async function releaseDirectSeat(){
   if(!selectedSeance||!directHoldToken)return;
   const token=directHoldToken;
   const seat=directHoldSeat;
+  const beforeRow=(lastDirectState?.seats||[]).find(r=>seatKey(r)===seat);
+  const before=String(beforeRow?.state||"mine");
+  const t0=performance.now();
+
+  setStatus("raceStatus",`Філармонія: RELEASE ${seat}…`);
   try{
     const {data,error}=await db.rpc("release_public_hold",{
       p_seance_id:selectedSeance,
       p_hold_token:token
     });
     if(error)throw error;
+
+    const elapsed=performance.now()-t0;
     directHoldToken="";
     directHoldSeat="";
-    armedPh="";
     lastDirectState={...(data||{}),geometry:currentGeometry};
+
+    const afterRow=(lastDirectState.seats||[]).find(r=>seatKey(r)===seat);
+    armedPh=seat;
     renderHall("hallPh",lastDirectState,"ph");
     updateRaceArm();
-    setStatus("raceStatus",`Філармонія: HOLD ${seat} звільнено. Місце знову available.`,"ok");
+    updateDirectMeters("RELEASE");
+
+    pushDirectEvent({
+      operation:"RELEASE",
+      seat,
+      before,
+      after:String(afterRow?.state||"available"),
+      result:"succeeded",
+      ms:elapsed,
+      code:"release_public_hold"
+    });
+
+    setStatus("raceStatus",`Філармонія: HOLD ${seat} звільнено • ${fmtMs(elapsed)} ms. Місце знову available.`,"ok");
   }catch(e){
+    const elapsed=performance.now()-t0;
+    updateDirectMeters("RELEASE ERROR");
+    pushDirectEvent({
+      operation:"RELEASE",
+      seat,
+      before,
+      after:before,
+      result:"error",
+      ms:elapsed,
+      code:e.message
+    });
     setStatus("raceStatus",`Release Філармонії: ${e.message}`,"bad");
     showMessage(e.message,true);
   }
@@ -496,7 +709,7 @@ $("seanceSelect").addEventListener("change",async()=>{
   armedPh=armedVa="";
   currentRaceId="";
   if(selectedSeance){
-    try{await loadDirectPublicState();}catch(e){setStatus("raceStatus",e.message,"bad");}
+    try{await loadDirectPublicState(true);}catch(e){setStatus("raceStatus",e.message,"bad");}
   }
   await refreshState();
   updateRaceArm();
@@ -506,7 +719,7 @@ $("readBtn").addEventListener("click",()=>togglePermission("read","read"));$("ho
 async function controlStateRead(){try{const r=await api("/api/state-read",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance})});$("stateMs").textContent=fmtMs(r.duration_ms);setStatus("grantStatus",`STATE succeeded • ${r.response_code||"state_returned"} • ${fmtMs(r.duration_ms)} ms`,"ok");await refreshTelemetry();}catch(e){setStatus("grantStatus",e.message,"bad");}}
 $("preflightBtn").addEventListener("click",controlStateRead);
 $("hallPh").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("ph",s.dataset.seat)});$("hallVa").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("va",s.dataset.seat)});
-$("directHoldBtn").addEventListener("click",holdDirectSeat);$("directReleaseBtn").addEventListener("click",releaseDirectSeat);$("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListener("click",saleWinner);$("releaseRaceBtn").addEventListener("click",releaseRace);
+$("directStateBtn").addEventListener("click",async()=>{if(!selectedSeance){showMessage("Спочатку оберіть сеанс.",true);return;}try{await loadDirectPublicState(true);}catch(e){showMessage(e.message,true);}});$("directHoldBtn").addEventListener("click",holdDirectSeat);$("directReleaseBtn").addEventListener("click",releaseDirectSeat);$("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListener("click",saleWinner);$("releaseRaceBtn").addEventListener("click",releaseRace);
 window.addEventListener("resize",()=>{if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");});
 
 (async()=>{
@@ -518,6 +731,8 @@ window.addEventListener("resize",()=>{if(lastDirectState)renderHall("hallPh",las
     setStatus("seanceStatus",`Публічний каталог: ${e.message}`,"bad");
     showMessage("Спочатку виконайте SQL-файл flight-deck-public-catalog.sql у Supabase.",true);
   }
+  renderTelemetry();
+  updateDirectMeters();
   await refreshState();
   pollTimer=setInterval(async()=>{
     await refreshState();
