@@ -77,10 +77,10 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
     <article class="card">
       <div class="step"><div><h2>Сеанс Філармонії</h2><div class="hint">Новий сеанс створюється штатним редактором Філармонії в одному з двох залів. Ця панель його підхоплює автоматично.</div></div><div class="stepno">3</div></div>
       <div class="controls">
-        <div class="row"><a id="editorLink" class="btn primary" href="./seance-editor.html" target="_blank" rel="noopener">Створити новий сеанс ↗</a></div>
+        <div class="row"><button id="editorLink" class="btn primary" type="button" disabled>Створити новий сеанс • після 8097</button></div>
         <div class="field"><label for="hallSelect">Зал</label><select id="hallSelect"><option value="">Завантаження…</option></select></div>
         <div class="field"><label for="seanceSelect">Сеанс</label><select id="seanceSelect"><option value="">Оберіть сеанс…</option></select></div>
-        <div id="seanceStatus" class="statusline">Після публікації новий сеанс з'явиться тут.</div>
+        <div id="seanceStatus" class="statusline">Новий сеанс підхопиться автоматично. Створення без логіна підключимо через 8097.</div>
       </div>
     </article>
 
@@ -117,6 +117,9 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
           <div class="resultrow"><span>Місце VA</span><b id="armedVa">—</b></div>
           <div class="resultrow"><span>Ціль</span><b id="raceSeat" class="race-seat">—</b></div>
         </div>
+        <div class="hint" style="margin-top:2px">Перевірка прямого контуру без Docker:</div>
+        <button id="directHoldBtn" class="btn primary big" disabled>HOLD ФІЛАРМОНІЇ</button>
+        <button id="directReleaseBtn" class="btn" disabled>ЗВІЛЬНИТИ HOLD Ф</button>
         <button id="raceBtn" class="btn amber big" disabled>ОДНОЧАСНИЙ HOLD</button>
         <div id="raceResults" class="resultbox">
           <div class="resultrow"><span>Ф</span><span id="resultPh">—</span></div>
@@ -170,6 +173,8 @@ let listTimer = null;
 let messageTimer = null;
 let backendOnline = false;
 let currentGeometry = null;
+let directHoldToken = "";
+let directHoldSeat = "";
 
 function showMessage(text, bad=false){
   const el=$("message"); el.textContent=text; el.className=`message show${bad?" bad":""}`;
@@ -263,7 +268,7 @@ async function loadDirectPublicState(){
   if(!s)return;
 
   const [{data,error},geometry]=await Promise.all([
-    db.rpc("get_public_hall_state",{p_seance_id:selectedSeance,p_hold_token:null}),
+    db.rpc("get_public_hall_state",{p_seance_id:selectedSeance,p_hold_token:directHoldToken||null}),
     loadGeometryForHall(s.hall_id)
   ]);
 
@@ -384,7 +389,15 @@ async function ensureHallStates(force=true){
   }catch(e){ setStatus("raceStatus",`Схеми: ${e.message}`,"bad"); }
 }
 function updateRaceArm(){
-  $("armedPh").textContent=armedPh||"—"; $("armedVa").textContent=armedVa||"—"; const same=armedPh&&armedVa&&armedPh===armedVa; $("raceSeat").textContent=same?armedPh:"—"; $("raceBtn").disabled=!state?.ready||!same; if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");
+  $("armedPh").textContent=armedPh||"—";
+  $("armedVa").textContent=armedVa||"—";
+  const same=armedPh&&armedVa&&armedPh===armedVa;
+  $("raceSeat").textContent=same?armedPh:"—";
+  $("raceBtn").disabled=!state?.ready||!same;
+  $("directHoldBtn").disabled=!armedPh||Boolean(directHoldToken);
+  $("directReleaseBtn").disabled=!directHoldToken;
+  if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");
+  if(lastVaState)renderHall("hallVa",lastVaState,"va");
 }
 function armSeat(path,key){
   if(path==="va"&&!state?.ready)return;
@@ -400,6 +413,56 @@ function armSeat(path,key){
     setStatus("raceStatus",`Філармонія: вибрано ${key}. Gateway-контур стане доступним після запуску 8097.`,"ok");
   }
 }
+
+async function holdDirectSeat(){
+  if(!selectedSeance||!armedPh||directHoldToken)return;
+  const token=crypto.randomUUID();
+  setStatus("raceStatus",`Філармонія: HOLD ${armedPh}…`);
+  try{
+    const {data,error}=await db.rpc("set_public_hold",{
+      p_seance_id:selectedSeance,
+      p_seat_keys:[armedPh],
+      p_hold_token:token
+    });
+    if(error)throw error;
+    directHoldToken=token;
+    directHoldSeat=armedPh;
+    lastDirectState={...(data||{}),geometry:currentGeometry};
+    renderHall("hallPh",lastDirectState,"ph");
+    updateRaceArm();
+    setStatus("raceStatus",`Філармонія: ${directHoldSeat} реально поставлено в HOLD на 15 хв.`,"ok");
+  }catch(e){
+    directHoldToken="";
+    directHoldSeat="";
+    updateRaceArm();
+    setStatus("raceStatus",`HOLD Філармонії: ${e.message}`,"bad");
+    showMessage(e.message,true);
+  }
+}
+
+async function releaseDirectSeat(){
+  if(!selectedSeance||!directHoldToken)return;
+  const token=directHoldToken;
+  const seat=directHoldSeat;
+  try{
+    const {data,error}=await db.rpc("release_public_hold",{
+      p_seance_id:selectedSeance,
+      p_hold_token:token
+    });
+    if(error)throw error;
+    directHoldToken="";
+    directHoldSeat="";
+    armedPh="";
+    lastDirectState={...(data||{}),geometry:currentGeometry};
+    renderHall("hallPh",lastDirectState,"ph");
+    updateRaceArm();
+    setStatus("raceStatus",`Філармонія: HOLD ${seat} звільнено. Місце знову available.`,"ok");
+  }catch(e){
+    setStatus("raceStatus",`Release Філармонії: ${e.message}`,"bad");
+    showMessage(e.message,true);
+  }
+}
+
 async function runRace(){
   const seat=armedPh; if(!seat||seat!==armedVa)return; $("raceBtn").disabled=true; setStatus("raceStatus","Два HOLD відправлено одночасно…");
   try{
@@ -423,13 +486,27 @@ $("refreshBtn").addEventListener("click",async()=>{await loadVenueLists();await 
 $("gatewayBtn").addEventListener("click",async()=>{if(!backendOnline){showMessage("Gateway backend 8097 офлайн. Прямий контур Філармонії при цьому працює.",true);return;}try{const next=!state?.gateway?.on;await api("/api/gateway",{method:"POST",body:JSON.stringify({on:next})});setStatus("gatewayStatus",next?"Gateway увімкнено. Маршрут Філармонії активний.":"Gateway вимкнено.","ok");await refreshState();}catch(e){setStatus("gatewayStatus",e.message,"bad");}});
 $("vaBtn").addEventListener("click",async()=>{if(!backendOnline){showMessage("VA підключається тільки через backend 8097.",true);return;}try{const next=!state?.va?.connected;await api("/api/va",{method:"POST",body:JSON.stringify({on:next})});await refreshState();if(next)await probeVa();else $("vaMs").textContent="—";}catch(e){setStatus("vaStatus",e.message,"bad");}});
 $("hallSelect").addEventListener("change",()=>{selectedSeance="";renderSeanceSelect();$("hallPh").querySelector(".scene").innerHTML="";$("countsPh").textContent="—";});
-$("seanceSelect").addEventListener("change",async()=>{selectedSeance=$("seanceSelect").value;armedPh=armedVa="";currentRaceId="";if(selectedSeance){try{await loadDirectPublicState();}catch(e){setStatus("raceStatus",e.message,"bad");}}await refreshState();updateRaceArm();});
+$("seanceSelect").addEventListener("change",async()=>{
+  const next=$("seanceSelect").value;
+  if(directHoldToken&&selectedSeance){
+    try{await db.rpc("release_public_hold",{p_seance_id:selectedSeance,p_hold_token:directHoldToken});}catch(_){}
+  }
+  directHoldToken="";directHoldSeat="";
+  selectedSeance=next;
+  armedPh=armedVa="";
+  currentRaceId="";
+  if(selectedSeance){
+    try{await loadDirectPublicState();}catch(e){setStatus("raceStatus",e.message,"bad");}
+  }
+  await refreshState();
+  updateRaceArm();
+});
 async function togglePermission(permission,key){if(!selectedSeance)return;const current=Boolean(state?.grant?.[key]);try{await api("/api/grant",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance,permission,on:!current})});setStatus("grantStatus",`${permission.toUpperCase()} ${!current?"дозволено":"вимкнено"}.`,"ok");await refreshState();if(permission==="read"&&!current)await controlStateRead();}catch(e){setStatus("grantStatus",e.message,"bad");}}
 $("readBtn").addEventListener("click",()=>togglePermission("read","read"));$("holdBtn").addEventListener("click",()=>togglePermission("hold","hold"));$("saleBtn").addEventListener("click",()=>togglePermission("sale","sale"));
 async function controlStateRead(){try{const r=await api("/api/state-read",{method:"POST",body:JSON.stringify({seance_ref:selectedSeance})});$("stateMs").textContent=fmtMs(r.duration_ms);setStatus("grantStatus",`STATE succeeded • ${r.response_code||"state_returned"} • ${fmtMs(r.duration_ms)} ms`,"ok");await refreshTelemetry();}catch(e){setStatus("grantStatus",e.message,"bad");}}
 $("preflightBtn").addEventListener("click",controlStateRead);
 $("hallPh").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("ph",s.dataset.seat)});$("hallVa").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("va",s.dataset.seat)});
-$("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListener("click",saleWinner);$("releaseRaceBtn").addEventListener("click",releaseRace);
+$("directHoldBtn").addEventListener("click",holdDirectSeat);$("directReleaseBtn").addEventListener("click",releaseDirectSeat);$("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListener("click",saleWinner);$("releaseRaceBtn").addEventListener("click",releaseRace);
 window.addEventListener("resize",()=>{if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");});
 
 (async()=>{
