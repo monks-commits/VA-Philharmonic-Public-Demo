@@ -90,7 +90,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
         <div class="permissions">
           <button id="readBtn" class="perm">READ</button>
           <button id="holdBtn" class="perm">HOLD</button>
-          <button id="saleBtn" class="perm" disabled>SALE • NEXT</button>
+          <button id="saleBtn" class="perm" disabled>SALE</button>
         </div>
         <button id="preflightBtn" class="btn primary">Контрольний STATE</button>
         <div id="grantStatus" class="statusline">Оберіть сеанс.</div>
@@ -127,7 +127,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
           <div class="resultrow"><span>Різниця</span><b id="raceDelta">—</b></div>
           <div class="resultrow"><span>Висновок</span><b id="raceConclusion">—</b></div>
         </div>
-        <button id="saleWinnerBtn" class="btn green big" disabled>ПРОДАТИ ПЕРЕМОЖЦЮ</button>
+        <button id="saleWinnerBtn" class="btn green big" disabled>ПРОДАТИ ЧЕРЕЗ VA</button>
         <button id="releaseRaceBtn" class="btn" disabled>Скасувати HOLD</button>
         <div id="raceStatus" class="statusline">Зліт стане доступним після повної готовності.</div>
       </aside>
@@ -180,6 +180,9 @@ let remoteGatewayOnline = false;
 let remoteVaConnected = false;
 let remoteReadOk = false;
 let remoteHoldOk = false;
+let remoteSaleApiOk = false;
+let remoteSaleAuthorized = false;
+let remoteSaleDone = false;
 let remoteAllowedSeances = [];
 let vaHoldRef = "";
 let vaHoldSeat = "";
@@ -196,18 +199,36 @@ async function vaClientRequest(action, options={}){
   const started_at=new Date().toISOString();
   const t0=performance.now();
   let response;
+  const extraHeaders={...(options.headers||{})};
+
   if(options.method==="POST"){
-    response=await fetch(VA_CLIENT_URL,{method:"POST",cache:"no-store",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,...(options.body||{})})});
+    response=await fetch(VA_CLIENT_URL,{
+      method:"POST",
+      cache:"no-store",
+      headers:{"Content-Type":"application/json",...extraHeaders},
+      body:JSON.stringify({action,...(options.body||{})})
+    });
   }else{
     const params=new URLSearchParams({action,_:String(Date.now())});
-    Object.entries(options.params||{}).forEach(([k,v])=>{if(v!==undefined&&v!==null&&String(v)!=="")params.set(k,String(v));});
-    response=await fetch(`${VA_CLIENT_URL}?${params.toString()}`,{method:"GET",cache:"no-store"});
+    Object.entries(options.params||{}).forEach(([k,v])=>{
+      if(v!==undefined&&v!==null&&String(v)!=="")params.set(k,String(v));
+    });
+    response=await fetch(`${VA_CLIENT_URL}?${params.toString()}`,{
+      method:"GET",
+      cache:"no-store",
+      headers:extraHeaders
+    });
   }
+
   const data=await response.json().catch(()=>({}));
   const browser_ms=performance.now()-t0;
+
   if(!response.ok||data?.ok===false){
-    const e=new Error(data?.error||data?.message||`va_gateway_http_${response.status}`);e.data=data;e.status=response.status;e.duration_ms=browser_ms;e.started_at=started_at;throw e;
+    const e=new Error(data?.error||data?.message||`va_gateway_http_${response.status}`);
+    e.data=data;e.status=response.status;e.duration_ms=browser_ms;e.started_at=started_at;
+    throw e;
   }
+
   return {...data,duration_ms:Number(data?.duration_ms??browser_ms),browser_ms,started_at};
 }
 async function remoteListSeances(){const r=await vaClientRequest("seances");remoteAllowedSeances=Array.isArray(r.seances)?r.seances:[];return r;}
@@ -217,7 +238,50 @@ async function remoteStateRead(seanceId,holdRef=""){
   return r;
 }
 async function remoteHold(seanceId,holdRef,seatKeys){return await vaClientRequest("hold",{method:"POST",body:{seance_id:seanceId,hold_ref:holdRef,seat_keys:seatKeys}});}
-async function remoteRelease(seanceId,holdRef){return await vaClientRequest("release",{method:"POST",body:{seance_id:seanceId,hold_ref:holdRef}});}
+async function remoteRelease(seanceId,holdRef){
+  return await vaClientRequest("release",{
+    method:"POST",
+    body:{seance_id:seanceId,hold_ref:holdRef}
+  });
+}
+
+function saleKey(){
+  return String(sessionStorage.getItem("flight-deck-sale-key")||"").trim();
+}
+
+async function authorizeSale(){
+  let key=saleKey();
+  if(!key){
+    key=String(prompt("SALE KEY для Flight Deck:")||"").trim();
+    if(!key)throw new Error("sale_key_required");
+  }
+
+  const r=await vaClientRequest("sale-auth",{
+    headers:{"X-Flight-Deck-Sale-Key":key}
+  });
+
+  if(!r.sale_authorized)throw new Error("sale_unauthorized");
+
+  sessionStorage.setItem("flight-deck-sale-key",key);
+  remoteSaleAuthorized=true;
+  return r;
+}
+
+async function remoteSale(seanceId,holdRef,seatKeys,externalOrderRef){
+  const key=saleKey();
+  if(!key)throw new Error("sale_key_required");
+
+  return await vaClientRequest("sale",{
+    method:"POST",
+    headers:{"X-Flight-Deck-Sale-Key":key},
+    body:{
+      seance_id:seanceId,
+      hold_ref:holdRef,
+      seat_keys:seatKeys,
+      external_order_ref:externalOrderRef
+    }
+  });
+}
 function selectedSeanceIsAllowed(){return Boolean(selectedSeance&&remoteAllowedSeances.some(s=>String(s?.id||"")===selectedSeance));}
 async function loadVaState(){
   if(!selectedSeance||!remoteVaConnected)return null;
@@ -343,11 +407,11 @@ function renderSeanceSelect(){
 async function refreshState(){
   const seanceOk=Boolean(selectedSeance&&seances.find(s=>s.id===selectedSeance)?.active);
   const allowed=selectedSeanceIsAllowed();
-  state={gateway:{on:remoteGatewayOnline},va:{connected:remoteVaConnected},grant:{read:remoteReadOk,hold:remoteHoldOk,sale:false},ready:Boolean(remoteGatewayOnline&&remoteVaConnected&&remoteReadOk&&remoteHoldOk&&seanceOk&&allowed)};
+  state={gateway:{on:remoteGatewayOnline},va:{connected:remoteVaConnected},grant:{read:remoteReadOk,hold:remoteHoldOk,sale:remoteSaleAuthorized},ready:Boolean(remoteGatewayOnline&&remoteVaConnected&&remoteReadOk&&remoteHoldOk&&seanceOk&&allowed)};
 
   lamp("lampGateway",remoteGatewayOnline); $("valGateway").textContent=remoteGatewayOnline?"ONLINE":"OFF";
   lamp("lampVa",remoteVaConnected); $("valVa").textContent=remoteVaConnected?"CONNECTED":"не підключено";
-  lamp("lampRead",remoteReadOk); lamp("lampHold",remoteHoldOk); lamp("lampSale",false); lamp("lampReady",Boolean(state.ready));
+  lamp("lampRead",remoteReadOk); lamp("lampHold",remoteHoldOk); lamp("lampSale",remoteSaleAuthorized||remoteSaleDone); lamp("lampReady",Boolean(state.ready));
   $("valRead").textContent=remoteReadOk?"підтверджено":"очікує";
   $("valHold").textContent=remoteHoldOk?"підтверджено":"очікує";
   $("valSale").textContent="NEXT";
@@ -357,10 +421,10 @@ async function refreshState(){
   $("vaBtn").textContent=remoteVaConnected?"VA ПІДКЛЮЧЕНО":"ПІДКЛЮЧИТИ VA";
   $("vaBtn").className=`btn ${remoteVaConnected?"primary":"green"} big`;
   $("vaBtn").disabled=!remoteGatewayOnline;
-  $("readBtn").classList.toggle("on",remoteReadOk); $("holdBtn").classList.toggle("on",remoteHoldOk); $("saleBtn").classList.remove("on");
+  $("readBtn").classList.toggle("on",remoteReadOk); $("holdBtn").classList.toggle("on",remoteHoldOk); $("saleBtn").classList.toggle("on",remoteSaleAuthorized||remoteSaleDone);
   $("readBtn").disabled=!remoteVaConnected||!seanceOk||!allowed;
   $("holdBtn").disabled=!remoteReadOk||!lastVaState;
-  $("saleBtn").disabled=true;
+  $("saleBtn").disabled=!(remoteHoldOk&&remoteSaleApiOk&&!remoteSaleDone);
   $("preflightBtn").disabled=!remoteReadOk;
   $("takeoffReady").textContent=state.ready?"ГОТОВО":"НЕ ГОТОВО"; $("takeoffReady").classList.toggle("on",Boolean(state.ready));
   if(selectedSeance){
@@ -498,18 +562,140 @@ async function runRace(){
   const good=[phOk,vaOk].filter(Boolean).length===1;currentWinner=phOk&&!vaOk?"philharmonic":vaOk&&!phOk?"va":phOk&&vaOk?"double":"none";currentRaceId=`race-${Date.now()}`;
   $("raceDelta").textContent=`${fmtMs(Math.abs(phMs-vaMs))} ms`;
   $("raceConclusion").textContent=good?`ПОДВІЙНИЙ HOLD НЕ ДОПУЩЕНО • переможець: ${currentWinner==="philharmonic"?"Філармонія":"VA"}`:currentWinner==="double"?"КРИТИЧНО: ОБИДВА HOLD":"ОБИДВА ВІДХИЛЕНО";
-  $("raceConclusion").className=good?"oktxt":"badtxt";$("releaseRaceBtn").disabled=!(phOk||vaOk);$("saleWinnerBtn").disabled=true;
-  setStatus("raceStatus",good?"Реальний конфлікт завершено одним HOLD. SALE — наступний крок.":"Результат потребує перевірки.",good?"ok":"bad");updateRaceArm();
+  $("raceConclusion").className=good?"oktxt":"badtxt";
+  $("releaseRaceBtn").disabled=!(phOk||vaOk);
+  $("saleWinnerBtn").disabled=!good||!remoteSaleApiOk;
+  $("saleWinnerBtn").textContent=currentWinner==="va"?"ПРОДАТИ ЧЕРЕЗ VA":"ПЕРЕДАТИ VA → SALE";
+  setStatus("raceStatus",
+    good
+      ? "Реальний конфлікт завершено одним HOLD. Можна провести SALE через VA → Gateway."
+      : "Результат потребує перевірки.",
+    good?"ok":"bad"
+  );
+  updateRaceArm();
 }
-async function saleWinner(){showMessage("SALE через VA Gateway Client V3 ще не відкрито. Підключимо наступним кроком.");}
+
+async function saleWinner(){
+  if(!selectedSeance||!["va","philharmonic"].includes(currentWinner))return;
+
+  const seat=armedVa||armedPh||vaHoldSeat||directHoldSeat;
+  if(!seat)return;
+
+  $("saleWinnerBtn").disabled=true;
+  $("releaseRaceBtn").disabled=true;
+  setStatus("raceStatus",`SALE ${seat}: готуємо авторизований шлях VA → Gateway…`);
+
+  try{
+    if(!remoteSaleAuthorized){
+      await authorizeSale();
+      await refreshState();
+    }
+
+    let saleRef=vaHoldRef;
+
+    if(currentWinner==="philharmonic"){
+      if(directHoldToken){
+        const {error}=await db.rpc("release_public_hold",{
+          p_seance_id:selectedSeance,
+          p_hold_token:directHoldToken
+        });
+        if(error)throw error;
+        directHoldToken="";
+        directHoldSeat="";
+      }
+
+      saleRef=crypto.randomUUID();
+      const h=await remoteHold(selectedSeance,saleRef,[seat]);
+      if(String(h.result||"")!=="succeeded"){
+        throw new Error(h.response_code||h.failure_code||"va_handoff_hold_failed");
+      }
+
+      vaHoldRef=saleRef;
+      vaHoldSeat=seat;
+      setStatus(
+        "raceStatus",
+        `Філармонія звільнила ${seat}; VA отримав HOLD через Gateway. Підтверджуємо SALE…`,
+        "ok"
+      );
+    }
+
+    if(!saleRef)throw new Error("va_hold_required_for_sale");
+
+    const externalOrderRef=`flightdeck-${Date.now()}-${crypto.randomUUID()}`;
+    const sale=await remoteSale(
+      selectedSeance,
+      saleRef,
+      [seat],
+      externalOrderRef
+    );
+
+    if(String(sale.result||"")!=="succeeded"){
+      throw new Error(
+        sale.response_code||
+        sale.failure_code||
+        "gateway_sale_rejected"
+      );
+    }
+
+    remoteSaleDone=true;
+    remoteSaleAuthorized=true;
+    vaHoldRef="";
+    vaHoldSeat="";
+    currentWinner="va-sale";
+
+    const amount=Number(sale?.gateway?.authoritative_amount);
+    const amountText=Number.isFinite(amount)?`${amount.toFixed(2)} UAH`:"—";
+
+    const [{data:phState},vaState]=await Promise.all([
+      db.rpc("get_public_hall_state",{
+        p_seance_id:selectedSeance,
+        p_hold_token:null
+      }),
+      remoteStateRead(selectedSeance,"")
+    ]);
+
+    lastDirectState={...(phState||{}),geometry:currentGeometry};
+    lastVaState={...(vaState.payload||{}),geometry:currentGeometry};
+    renderHall("hallPh",lastDirectState,"ph");
+    renderHall("hallVa",lastVaState,"va");
+
+    $("resultPh").innerHTML=`<span class="oktxt">sold</span> • ${esc(seat)}`;
+    $("resultVa").innerHTML=`<span class="oktxt">${esc(sale.response_code||"sale_confirmed")}</span> • ${fmtMs(sale.duration_ms)} ms • ${esc(amountText)}`;
+    $("raceConclusion").textContent=`SALE CONFIRMED • ${seat} • ${amountText}`;
+    $("raceConclusion").className="oktxt";
+    $("saleWinnerBtn").textContent="ПРОДАНО";
+    $("saleWinnerBtn").disabled=true;
+    $("releaseRaceBtn").disabled=true;
+
+    setStatus(
+      "raceStatus",
+      `VA → Gateway → Філармонія: ${seat} продано без LiqPay • ${amountText} • ${fmtMs(sale.duration_ms)} ms.`,
+      "ok"
+    );
+
+    await refreshState();
+  }catch(e){
+    $("saleWinnerBtn").disabled=false;
+    $("releaseRaceBtn").disabled=false;
+
+    if(String(e.message||"")==="sale_unauthorized"){
+      sessionStorage.removeItem("flight-deck-sale-key");
+      remoteSaleAuthorized=false;
+    }
+
+    setStatus("raceStatus",`SALE: ${e.message}`,"bad");
+    showMessage(e.message,true);
+    await refreshState();
+  }
+}
 async function releaseRace(){
   if(!selectedSeance)return;const tasks=[];
   if(directHoldToken)tasks.push(db.rpc("release_public_hold",{p_seance_id:selectedSeance,p_hold_token:directHoldToken}));
   if(vaHoldRef)tasks.push(remoteRelease(selectedSeance,vaHoldRef));
-  await Promise.allSettled(tasks);directHoldToken="";directHoldSeat="";vaHoldRef="";vaHoldSeat="";currentRaceId="";currentWinner="";armedPh="";armedVa="";$("releaseRaceBtn").disabled=true;$("saleWinnerBtn").disabled=true;await ensureHallStates(false);updateRaceArm();setStatus("raceStatus","HOLD звільнено.","ok");
+  await Promise.allSettled(tasks);directHoldToken="";directHoldSeat="";vaHoldRef="";vaHoldSeat="";currentRaceId="";currentWinner="";armedPh="";armedVa="";$("releaseRaceBtn").disabled=true;$("saleWinnerBtn").disabled=true;$("saleWinnerBtn").textContent="ПРОДАТИ ЧЕРЕЗ VA";await ensureHallStates(false);updateRaceArm();setStatus("raceStatus","HOLD звільнено.","ok");
 }
 $("prepareBtn").addEventListener("click",async()=>{
-  remoteGatewayOnline=false;remoteVaConnected=false;remoteReadOk=false;remoteHoldOk=false;remoteAllowedSeances=[];vaHoldRef="";vaHoldSeat="";lastVaState=null;
+  remoteGatewayOnline=false;remoteVaConnected=false;remoteReadOk=false;remoteHoldOk=false;remoteSaleApiOk=false;remoteSaleAuthorized=false;remoteSaleDone=false;remoteAllowedSeances=[];vaHoldRef="";vaHoldSeat="";lastVaState=null;
   $("hallVa").querySelector(".scene").innerHTML="";$("countsVa").textContent="—";$("gatewayMs").textContent="—";$("vaMs").textContent="—";$("stateMs").textContent="—";
   setStatus("gatewayStatus","Початковий стан: Філармонія готова. Натисніть GATEWAY ON.","ok");setStatus("vaStatus","Gateway має бути ONLINE.");await refreshState();
 });
@@ -517,7 +703,7 @@ $("restoreBtn").addEventListener("click",async()=>{$("prepareBtn").click();});
 $("refreshBtn").addEventListener("click",async()=>{await loadVenueLists();await refreshState();});
 $("gatewayBtn").addEventListener("click",async()=>{
   setStatus("gatewayStatus","Перевіряємо реальний маршрут VA server → Gateway…");
-  try{const r=await remoteListSeances();remoteGatewayOnline=true;$("gatewayMs").textContent=fmtMs(r.duration_ms);setStatus("gatewayStatus",`Gateway відповів • ${r.count??remoteAllowedSeances.length} сеанс(ів) • ${fmtMs(r.duration_ms)} ms`,"ok");}
+  try{const r=await remoteListSeances();remoteGatewayOnline=true;remoteSaleApiOk=String(r.version||"").startsWith("4.");$("gatewayMs").textContent=fmtMs(r.duration_ms);setStatus("gatewayStatus",`Gateway відповів • ${r.count??remoteAllowedSeances.length} сеанс(ів) • ${fmtMs(r.duration_ms)} ms`,"ok");}
   catch(e){remoteGatewayOnline=false;setStatus("gatewayStatus",e.message,"bad");}
   await refreshState();
 });
@@ -527,7 +713,7 @@ $("seanceSelect").addEventListener("change",async()=>{
   const next=$("seanceSelect").value;
   if(directHoldToken&&selectedSeance){try{await db.rpc("release_public_hold",{p_seance_id:selectedSeance,p_hold_token:directHoldToken});}catch(_){}}
   if(vaHoldRef&&selectedSeance){try{await remoteRelease(selectedSeance,vaHoldRef);}catch(_){}}
-  directHoldToken="";directHoldSeat="";vaHoldRef="";vaHoldSeat="";selectedSeance=next;armedPh=armedVa="";currentRaceId="";remoteReadOk=false;remoteHoldOk=false;lastVaState=null;$("hallVa").querySelector(".scene").innerHTML="";$("countsVa").textContent="—";
+  directHoldToken="";directHoldSeat="";vaHoldRef="";vaHoldSeat="";selectedSeance=next;armedPh=armedVa="";currentRaceId="";remoteReadOk=false;remoteHoldOk=false;remoteSaleAuthorized=false;remoteSaleDone=false;lastVaState=null;$("hallVa").querySelector(".scene").innerHTML="";$("countsVa").textContent="—";
   if(selectedSeance){try{await loadDirectPublicState();}catch(e){setStatus("raceStatus",e.message,"bad");}}
   await refreshState();updateRaceArm();
   if(remoteVaConnected)setStatus("grantStatus",selectedSeanceIsAllowed()?"Сеанс доступний VA. Натисніть READ.":"Цей сеанс не доступний VA через Gateway.",selectedSeanceIsAllowed()?"ok":"bad");
@@ -547,7 +733,25 @@ async function verifyVaHold(){
   catch(e){remoteHoldOk=false;setStatus("grantStatus",e.message,"bad");}
   await refreshState();
 }
-$("readBtn").addEventListener("click",controlStateRead);$("holdBtn").addEventListener("click",verifyVaHold);$("saleBtn").addEventListener("click",()=>showMessage("SALE — наступний крок."));$("preflightBtn").addEventListener("click",controlStateRead);
+$("readBtn").addEventListener("click",controlStateRead);
+$("holdBtn").addEventListener("click",verifyVaHold);
+$("saleBtn").addEventListener("click",async()=>{
+  if(!remoteSaleApiOk){
+    showMessage("Спочатку оновіть VA Gateway Client до V4.",true);
+    return;
+  }
+  try{
+    const r=await authorizeSale();
+    remoteSaleAuthorized=true;
+    setStatus("grantStatus",`SALE авторизовано • VA Gateway Client ${r.version||"4.0"}.`,"ok");
+    await refreshState();
+  }catch(e){
+    remoteSaleAuthorized=false;
+    sessionStorage.removeItem("flight-deck-sale-key");
+    setStatus("grantStatus",`SALE: ${e.message}`,"bad");
+  }
+});
+$("preflightBtn").addEventListener("click",controlStateRead);
 $("hallPh").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("ph",s.dataset.seat)});$("hallVa").addEventListener("click",e=>{const s=e.target.closest("button[data-seat]");if(s)armSeat("va",s.dataset.seat)});
 $("directHoldBtn").addEventListener("click",holdDirectSeat);$("directReleaseBtn").addEventListener("click",releaseDirectSeat);$("raceBtn").addEventListener("click",runRace);$("saleWinnerBtn").addEventListener("click",saleWinner);$("releaseRaceBtn").addEventListener("click",releaseRace);
 window.addEventListener("resize",()=>{if(lastDirectState)renderHall("hallPh",lastDirectState,"ph");if(lastVaState)renderHall("hallVa",lastVaState,"va");});
