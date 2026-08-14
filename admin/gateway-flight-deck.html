@@ -28,6 +28,20 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 .message{position:fixed;right:18px;bottom:18px;max-width:440px;border:1px solid #37506a;background:#132131;color:#dcecff;border-radius:12px;padding:10px 13px;display:none;z-index:500}.message.show{display:block}.message.bad{border-color:#74343a;background:#31161a;color:#ffd5d7}
 @media(max-width:1200px){.lamps{grid-template-columns:repeat(4,1fr)}.grid{grid-template-columns:repeat(2,1fr)}.race-layout{grid-template-columns:1fr}.race-control{order:-1}.hall-wrap{aspect-ratio:16/10}}
 @media(max-width:650px){body{padding:8px}.lamps{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.pathbar{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.permissions{grid-template-columns:1fr}.top-actions{width:100%}.top-actions .btn{flex:1}}
+
+.sale-receipt{margin-top:14px;border:1px solid #24465d;background:#0f1b24;border-radius:16px;padding:14px;display:none}
+.sale-receipt.show{display:block}
+.sale-receipt h2{margin:0 0 4px;font-size:18px}
+.sale-receipt .receipt-sub{color:var(--muted);font-size:12px;margin-bottom:10px}
+.receipt-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.receipt-cell{border:1px solid #294051;background:#0b141c;border-radius:10px;padding:9px 10px;min-width:0}
+.receipt-cell span{display:block;color:var(--muted);font-size:10px;margin-bottom:4px}
+.receipt-cell b{display:block;font-size:13px;overflow-wrap:anywhere}
+.receipt-cell.wide{grid-column:span 2}
+.receipt-good{color:var(--green)}
+@media(max-width:1000px){.receipt-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:650px){.receipt-grid{grid-template-columns:1fr 1fr}.receipt-cell.wide{grid-column:span 2}}
+
 </style>
 </head>
 <body>
@@ -136,6 +150,22 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
         <div class="side-head"><b>Ваш Адмін • через Gateway</b><span id="countsVa" class="counts">—</span></div>
         <div id="hallVa" class="hall-wrap"><div class="scene"></div></div>
       </div>
+    </div>
+  </section>
+
+  <section id="saleReceipt" class="sale-receipt">
+    <h2>Результат продажу через Gateway</h2>
+    <div class="receipt-sub">Авторитетне підтвердження повернене Філармонією після SALE CONFIRM.</div>
+    <div class="receipt-grid">
+      <div class="receipt-cell"><span>Результат</span><b id="receiptResult" class="receipt-good">—</b></div>
+      <div class="receipt-cell"><span>Місце</span><b id="receiptSeat">—</b></div>
+      <div class="receipt-cell"><span>Сума</span><b id="receiptAmount">—</b></div>
+      <div class="receipt-cell"><span>Канал</span><b id="receiptChannel">VA → Gateway</b></div>
+      <div class="receipt-cell wide"><span>Замовлення Філармонії</span><b id="receiptOrder">—</b></div>
+      <div class="receipt-cell wide"><span>Квиток Філармонії</span><b id="receiptTicket">—</b></div>
+      <div class="receipt-cell wide"><span>Зовнішня операція VA</span><b id="receiptExternal">—</b></div>
+      <div class="receipt-cell"><span>Суб'єкт</span><b id="receiptSubject">—</b></div>
+      <div class="receipt-cell"><span>SALE ms</span><b id="receiptMs">—</b></div>
     </div>
   </section>
 
@@ -282,6 +312,57 @@ async function remoteSale(seanceId,holdRef,seatKeys,externalOrderRef){
     }
   });
 }
+
+function clearSaleReceipt(){
+  const box=$("saleReceipt");
+  if(box)box.classList.remove("show");
+}
+
+function showSaleReceipt(sale, seat, fallbackExternalRef=""){
+  const receipt=sale?.payload||{};
+  const gateway=sale?.gateway||{};
+  const tickets=Array.isArray(receipt?.tickets)?receipt.tickets:[];
+  const first=tickets[0]||{};
+  const amountRaw=Number(
+    receipt?.amount ??
+    gateway?.authoritative_amount
+  );
+  const currency=String(receipt?.currency||gateway?.currency||"UAH");
+  const amount=Number.isFinite(amountRaw)
+    ? `${amountRaw.toFixed(2)} ${currency}`
+    : "—";
+
+  $("receiptResult").textContent=String(
+    sale?.response_code ||
+    receipt?.response_code ||
+    sale?.result ||
+    "sale_confirmed"
+  );
+  $("receiptSeat").textContent=String(
+    first?.seat_key ||
+    seat ||
+    (Array.isArray(receipt?.seat_keys)?receipt.seat_keys.join(", "):"—")
+  );
+  $("receiptAmount").textContent=amount;
+  $("receiptOrder").textContent=String(receipt?.order_id||"—");
+  $("receiptTicket").textContent=String(
+    first?.ticket_number ||
+    (tickets.length ? `${tickets.length} квитків` : "—")
+  );
+  $("receiptExternal").textContent=String(
+    receipt?.external_order_ref ||
+    sale?.external_order_ref ||
+    fallbackExternalRef ||
+    "—"
+  );
+  $("receiptSubject").textContent=String(
+    receipt?.external_subject_code ||
+    "va-saas"
+  );
+  $("receiptMs").textContent=`${fmtMs(Number(sale?.duration_ms)||0)} ms`;
+  $("saleReceipt").classList.add("show");
+}
+
 function selectedSeanceIsAllowed(){return Boolean(selectedSeance&&remoteAllowedSeances.some(s=>String(s?.id||"")===selectedSeance));}
 async function loadVaState(){
   if(!selectedSeance||!remoteVaConnected)return null;
@@ -637,6 +718,8 @@ async function saleWinner(){
       );
     }
 
+    showSaleReceipt(sale, seat, externalOrderRef);
+
     remoteSaleDone=true;
     remoteSaleAuthorized=true;
     vaHoldRef="";
@@ -667,9 +750,18 @@ async function saleWinner(){
     $("saleWinnerBtn").disabled=true;
     $("releaseRaceBtn").disabled=true;
 
+    const receipt=sale?.payload||{};
+    const firstTicket=Array.isArray(receipt?.tickets)&&receipt.tickets.length
+      ? receipt.tickets[0]
+      : null;
+    const receiptSuffix=[
+      receipt?.order_id ? `order ${receipt.order_id}` : "",
+      firstTicket?.ticket_number ? `ticket ${firstTicket.ticket_number}` : ""
+    ].filter(Boolean).join(" • ");
+
     setStatus(
       "raceStatus",
-      `VA → Gateway → Філармонія: ${seat} продано без LiqPay • ${amountText} • ${fmtMs(sale.duration_ms)} ms.`,
+      `VA → Gateway → Філармонія: ${seat} продано без LiqPay • ${amountText} • ${fmtMs(sale.duration_ms)} ms${receiptSuffix?` • ${receiptSuffix}`:""}.`,
       "ok"
     );
 
@@ -694,12 +786,12 @@ async function releaseRace(){
   if(vaHoldRef)tasks.push(remoteRelease(selectedSeance,vaHoldRef));
   await Promise.allSettled(tasks);directHoldToken="";directHoldSeat="";vaHoldRef="";vaHoldSeat="";currentRaceId="";currentWinner="";armedPh="";armedVa="";$("releaseRaceBtn").disabled=true;$("saleWinnerBtn").disabled=true;$("saleWinnerBtn").textContent="ПРОДАТИ ЧЕРЕЗ VA";await ensureHallStates(false);updateRaceArm();setStatus("raceStatus","HOLD звільнено.","ok");
 }
-$("prepareBtn").addEventListener("click",async()=>{
+$("prepareBtn").addEventListener("click",async()=>{clearSaleReceipt();
   remoteGatewayOnline=false;remoteVaConnected=false;remoteReadOk=false;remoteHoldOk=false;remoteSaleApiOk=false;remoteSaleAuthorized=false;remoteSaleDone=false;remoteAllowedSeances=[];vaHoldRef="";vaHoldSeat="";lastVaState=null;
   $("hallVa").querySelector(".scene").innerHTML="";$("countsVa").textContent="—";$("gatewayMs").textContent="—";$("vaMs").textContent="—";$("stateMs").textContent="—";
   setStatus("gatewayStatus","Початковий стан: Філармонія готова. Натисніть GATEWAY ON.","ok");setStatus("vaStatus","Gateway має бути ONLINE.");await refreshState();
 });
-$("restoreBtn").addEventListener("click",async()=>{$("prepareBtn").click();});
+$("restoreBtn").addEventListener("click",async()=>{clearSaleReceipt();$("prepareBtn").click();});
 $("refreshBtn").addEventListener("click",async()=>{await loadVenueLists();await refreshState();});
 $("gatewayBtn").addEventListener("click",async()=>{
   setStatus("gatewayStatus","Перевіряємо реальний маршрут VA server → Gateway…");
@@ -709,7 +801,7 @@ $("gatewayBtn").addEventListener("click",async()=>{
 });
 $("vaBtn").addEventListener("click",async()=>{if(!remoteGatewayOnline)return;try{await probeVa();}catch(e){setStatus("vaStatus",e.message,"bad");}});
 $("hallSelect").addEventListener("change",()=>{selectedSeance="";renderSeanceSelect();$("hallPh").querySelector(".scene").innerHTML="";$("countsPh").textContent="—";});
-$("seanceSelect").addEventListener("change",async()=>{
+$("seanceSelect").addEventListener("change",async()=>{clearSaleReceipt();
   const next=$("seanceSelect").value;
   if(directHoldToken&&selectedSeance){try{await db.rpc("release_public_hold",{p_seance_id:selectedSeance,p_hold_token:directHoldToken});}catch(_){}}
   if(vaHoldRef&&selectedSeance){try{await remoteRelease(selectedSeance,vaHoldRef);}catch(_){}}
