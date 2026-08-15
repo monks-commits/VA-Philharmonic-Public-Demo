@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck — Дніпровська філармонія</title>
+<title>Gateway Flight Deck V8 — Дніпровська філармонія</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -37,7 +37,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck</h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8</span></h1>
       <div class="subtitle">Дніпровська філармонія • один зал • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -160,7 +160,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 
   <section class="telemetry">
     <h2>Мілісекундна телеметрія реальних HOLD</h2>
-    <div class="hint">Тут немає тестової кнопки «одночасний HOLD». Події приходять із фактичних кліків у двох робочих сторінках вище.</div>
+    <div class="hint">Тут немає тестової кнопки «одночасний HOLD». Події надсилають самі робочі сторінки при фактичному HOLD; Flight Deck не підміняє їхні клієнти або RPC.</div>
     <div class="tablewrap">
       <table>
         <thead><tr><th>Старт</th><th>Канал</th><th>Сеанс</th><th>Місце</th><th>Результат</th><th>Код</th><th>Browser ms</th></tr></thead>
@@ -449,6 +449,7 @@ function reportHold(evt){
   race[clean.source]=clean;
   paintLane(clean);
   addTelemetry(clean);
+  requestOppositeRefresh(clean.source, clean.seance);
   evaluateRace();
 }
 
@@ -458,90 +459,44 @@ window.addEventListener("message",event=>{
   reportHold(event.data.payload||{});
 });
 
-function installPhTelemetry(){
-  const frame=$("phFrame");
-  let w;
-  try{w=frame.contentWindow;}catch(_){return;}
-  if(!w||w.__FD_PH_TELEMETRY)return;
-  const client=w.PH_SUPABASE;
-  if(!client||typeof client.rpc!=="function")return;
-  const original=client.rpc.bind(client);
-  client.rpc=async function(name,args){
-    if(name!=="set_public_hold")return original(name,args);
-    const startedAt=Date.now();
-    const t0=w.performance.now();
-    const keys=Array.isArray(args?.p_seat_keys)?args.p_seat_keys:[];
-    const seat=String(keys[keys.length-1]||keys[0]||"");
-    try{
-      const result=await original(name,args);
-      const ms=w.performance.now()-t0;
-      const error=result?.error;
-      w.parent.postMessage({type:"gateway-flight-deck-hold",payload:{source:"ph",seance:args?.p_seance_id||"",seat,startedAt,ms,result:error?"rejected":"succeeded",code:error?errCode(error):"hold_accepted"}},location.origin);
-      return result;
-    }catch(error){
-      const ms=w.performance.now()-t0;
-      w.parent.postMessage({type:"gateway-flight-deck-hold",payload:{source:"ph",seance:args?.p_seance_id||"",seat,startedAt,ms,result:"rejected",code:errCode(error)}},location.origin);
-      throw error;
-    }
-  };
-  w.__FD_PH_TELEMETRY=true;
-}
+function requestOppositeRefresh(source, seance){
+  const target = source === "va" ? $("phFrame") : $("vaFrame");
 
-function installVaTelemetry(){
-  const frame=$("vaFrame");
-  let w;
-  try{w=frame.contentWindow;}catch(_){return;}
-  if(!w||w.__FD_VA_TELEMETRY)return;
-  const client=w.VA_GATEWAY;
-  if(!client||typeof client.setHold!=="function")return;
-  const original=client.setHold.bind(client);
-  client.setHold=async function(seanceId,holdRef,seatKeys){
-    const startedAt=Date.now();
-    const t0=w.performance.now();
-    const keys=Array.isArray(seatKeys)?seatKeys:[];
-    const seat=String(keys[keys.length-1]||keys[0]||"");
-    try{
-      const result=await original(seanceId,holdRef,seatKeys);
-      const ms=w.performance.now()-t0;
-      const ok=!result?.result||String(result.result)==="succeeded";
-      w.parent.postMessage({type:"gateway-flight-deck-hold",payload:{source:"va",seance:seanceId||"",seat,startedAt,ms,result:ok?"succeeded":"rejected",code:result?.response_code||result?.failure_code||(ok?"hold_accepted":"rejected")}},location.origin);
-      return result;
-    }catch(error){
-      const ms=w.performance.now()-t0;
-      const data=error?.data||{};
-      const code=data?.response_code||data?.failure_code||data?.error||errCode(error);
-      w.parent.postMessage({type:"gateway-flight-deck-hold",payload:{source:"va",seance:seanceId||"",seat,startedAt,ms,result:"rejected",code}},location.origin);
-      throw error;
-    }
-  };
-  w.__FD_VA_TELEMETRY=true;
-}
-
-function scheduleInstrumentation(which){
-  let tries=0;
-  const timer=setInterval(()=>{
-    tries++;
-    try{
-      if(which==="ph")installPhTelemetry();
-      else installVaTelemetry();
-      const w=$(which==="ph"?"phFrame":"vaFrame").contentWindow;
-      const done=which==="ph"?w?.__FD_PH_TELEMETRY:w?.__FD_VA_TELEMETRY;
-      if(done||tries>30)clearInterval(timer);
-    }catch(_){
-      if(tries>30)clearInterval(timer);
-    }
-  },150);
+  try {
+    target?.contentWindow?.postMessage(
+      {
+        type: "gateway-flight-deck-refresh",
+        seance
+      },
+      location.origin
+    );
+  } catch (_) {}
 }
 
 $("phFrame").addEventListener("load",()=>{
-  scheduleInstrumentation("ph");
+  try{
+    const href=$("phFrame").contentWindow.location.href;
+    $("phPaneMeta").textContent=
+      href.includes("ticket.html")
+        ? "випущений квиток"
+        : href.includes("order.html")
+          ? "оформлення замовлення"
+          : "реальна схема Філармонії";
+  }catch(_){}
 });
+
 $("vaFrame").addEventListener("load",()=>{
-  scheduleInstrumentation("va");
   try{
     const href=$("vaFrame").contentWindow.location.href;
-    $("vaPaneMeta").textContent=href.includes("hall.html")?"реальна схема через Gateway":href.includes("order.html")?"оформлення замовлення":href.includes("checkout.html")?"LiqPay checkout":"реальна загальна вітрина";
-  }catch(_){ }
+    $("vaPaneMeta").textContent=
+      href.includes("checkout.html")
+        ? "checkout • LiqPay відкриється окремо"
+        : href.includes("order.html")
+          ? "оформлення замовлення"
+          : href.includes("hall.html")
+            ? "реальна схема через Gateway"
+            : "реальна загальна вітрина";
+  }catch(_){}
 });
 
 $("hallSelect").addEventListener("change",()=>{
