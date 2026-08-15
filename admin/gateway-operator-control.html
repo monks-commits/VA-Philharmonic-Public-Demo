@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Пульт операторів — Дніпровська філармонія</title>
+<style>
+:root{
+  --bg:#f4f8fb;--card:#fff;--ink:#173042;--muted:#647987;--line:#d7e5ed;
+  --blue:#138fca;--blue2:#0875aa;--green:#118653;--red:#ba3e45;--soft:#edf7fb;
+  --shadow:0 12px 32px rgba(32,93,119,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select{font:inherit} button{cursor:pointer}
+.page{width:min(1500px,calc(100% - 28px));margin:0 auto;padding:18px 0 50px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px}.mark{width:48px;height:48px;display:grid;place-items:center;border-radius:14px;background:var(--soft);color:var(--blue2);font-weight:950;font-size:24px}
+h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hint{color:var(--muted)}
+.identity{font-size:13px;margin-top:3px}.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{min-height:42px;border:0;border-radius:11px;padding:0 14px;font-weight:850;background:var(--blue);color:#fff}
+.btn:hover{background:var(--blue2)}.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.good{background:var(--green)}.btn.danger{background:var(--red)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.hero{display:flex;justify-content:space-between;gap:18px;align-items:end;padding:24px 0 16px}.hero h2{font-size:34px;margin-bottom:4px}.hero p{margin:0}
+.step-title{display:flex;align-items:center;gap:10px;margin:0 0 12px}.stepno{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#fff;font-weight:900}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
+.operator-layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px}
+.operator-list{display:grid;gap:9px;max-height:560px;overflow:auto}
+.op-item{width:100%;border:1px solid var(--line);border-radius:13px;background:#fff;padding:13px;text-align:left;color:var(--ink)}
+.op-item.active{border-color:var(--blue);box-shadow:0 0 0 2px rgba(19,143,202,.12)}
+.op-line{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.op-name{font-weight:900}.code{font:12px ui-monospace,Consolas,monospace;color:var(--muted);margin-top:3px}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:6px 9px;font-size:11px;font-weight:900;white-space:nowrap}
+.badge.on{background:#e8f7ef;color:var(--green)}.badge.off{background:#fff0f0;color:var(--red)}.badge.wait{background:#fff7df;color:#8a650c}
+.op-meta{margin-top:8px;color:var(--muted);font-size:12px}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.connection-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+.metric{background:#f8fbfd;border:1px solid #e7eff4;border-radius:13px;padding:11px}.metric span{display:block;color:var(--muted);font-size:11px;margin-bottom:4px}.metric b{display:block;overflow-wrap:anywhere}
+.connection-actions{display:flex;gap:8px;flex-wrap:wrap}
+.status{margin-top:12px;border-radius:12px;background:var(--soft);padding:11px 13px;color:var(--muted);font-size:13px;min-height:42px}
+.status.ok{background:#eaf8f0;color:#147345}.status.bad{background:#fff0f0;color:#a62f36}
+.locked{margin-top:14px;padding:16px;border:1px dashed #cbd9e1;border-radius:14px;background:#fbfdfe;color:var(--muted)}
+.create-wrap{margin-top:14px}.create-toggle{width:100%}.create-form{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.create-form.show{display:block}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:800;color:#405868}.field input,.filters select,.filters input{width:100%;min-height:40px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;color:var(--ink)}
+.secret{display:none;margin-top:12px;padding:13px;border:1px solid #e8d07e;background:#fff8dc;border-radius:12px}.secret.show{display:block}.secret code{display:block;background:#fff;padding:9px;border:1px solid #eadb9e;border-radius:8px;word-break:break-all;margin:8px 0}
+.seances{margin-top:16px}.seance-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+.filters{display:grid;grid-template-columns:220px 180px minmax(220px,1fr);gap:8px;margin-bottom:10px}
+.seance-list{display:grid;gap:8px}.seance{display:grid;grid-template-columns:minmax(0,1fr) 150px 180px 280px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:12px;background:#fff}
+.seance-title{font-weight:900}.seance-sub{font-size:12px;color:var(--muted);margin-top:3px}.permline{font-size:11px;color:var(--muted)}
+.verify{margin-top:16px;display:none}.verify.show{display:block}.verify-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+.frames{display:grid;grid-template-columns:1fr 1fr;gap:10px}.frame-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.frame-title{padding:9px 11px;border-bottom:1px solid var(--line);font-weight:900}.frame-card iframe{width:100%;height:680px;border:0;background:#fff}
+@media(max-width:1050px){.operator-layout{grid-template-columns:1fr}.operator-list{max-height:none}.seance{grid-template-columns:1fr 120px 150px}.seance .row-actions{grid-column:1/-1}.frames{grid-template-columns:1fr}}
+@media(max-width:700px){.page{width:min(100% - 14px,1500px)}.hero{align-items:flex-start;flex-direction:column}.connection-grid,.form-grid,.filters{grid-template-columns:1fr}.seance{grid-template-columns:1fr}.frames iframe{height:560px}}
+</style>
+</head>
+<body>
+<main class="page">
+<header class="topbar">
+  <div class="brand"><div class="mark">G</div><div><h1>Пульт операторів</h1><div id="identity" class="identity">Перевірка доступу…</div></div></div>
+  <div class="actions"><button id="refreshAll" class="btn ghost">Оновити</button><button class="btn ghost" onclick="location.href='./platform-admin.html'">← Адмін</button><button class="btn ghost" onclick="PhAuth.signOut()">Вийти</button></div>
+</header>
+
+<section class="hero"><div><h2>Керування зовнішніми операторами</h2><p class="muted">Спочатку оператор і реальне з'єднання з Gateway. Тільки після цього — доступ до конкретних сеансів.</p></div></section>
+
+<section class="card">
+  <div class="step-title"><div class="stepno">1</div><div><h3 style="margin:0">Оператор → доступ → з'єднання</h3><div class="hint">Глобальне підключення не дає жодного нового сеансу автоматично.</div></div></div>
+  <div class="operator-layout">
+    <div>
+      <div id="operatorList" class="operator-list"></div>
+      <div class="create-wrap">
+        <button id="createToggle" class="btn ghost create-toggle">+ Додати оператора</button>
+        <div id="createForm" class="create-form">
+          <div class="form-grid">
+            <div class="field full"><label>Назва оператора</label><input id="newName" placeholder="Наприклад: Оператор B"></div>
+            <div class="field"><label>Системний код</label><input id="newSubject" placeholder="operator-b"></div>
+            <div class="field"><label>Технічний клієнт</label><input id="newClient" placeholder="operator-b-primary"></div>
+            <div class="field full"><label>Опис клієнта</label><input id="newLabel" value="Основний серверний клієнт"></div>
+            <div class="field full"><label>URL перевірки з'єднання (необов'язково)</label><input id="newProbe" placeholder="https://operator.example/gateway-check"></div>
+            <div class="field full"><label>URL вітрини (необов'язково)</label><input id="newStorefront" placeholder="https://operator.example/"></div>
+            <div class="field full"><label>Шаблон URL залу для перевірки (необов'язково)</label><input id="newHall" placeholder="https://operator.example/hall?seance={seance}"></div>
+          </div>
+          <div class="hint" style="margin-top:8px">URL перевірки має бути browser-safe, без секретів, і сам виконувати серверний запит оператора до Gateway.</div>
+          <button id="createBtn" class="btn" style="width:100%;margin-top:12px">Створити і видати ключ</button>
+          <div id="secretBox" class="secret"><b>Ключ підключення показується один раз:</b><code id="secretValue"></code><button id="copySecret" class="btn ghost">Копіювати</button></div>
+        </div>
+      </div>
+    </div>
+    <div id="operatorPanel"><div class="empty">Оберіть оператора.</div></div>
+  </div>
+</section>
+
+<section id="seanceSection" class="card seances">
+  <div class="step-title"><div class="stepno">2</div><div><h3 style="margin:0">Сеанси оператора</h3><div class="hint">Сеанс з'являється у оператора тільки після команди «Дозволити продаж».</div></div></div>
+  <div id="seanceLocked" class="locked">Спочатку оберіть оператора, увімкніть його і підтвердьте з'єднання.</div>
+  <div id="seanceBody" hidden>
+    <div class="seance-head"><div><b id="seanceOperatorName">—</b><div id="seanceCount" class="hint"></div></div></div>
+    <div class="filters"><select id="hallFilter"><option value="">Усі зали</option></select><select id="accessFilter"><option value="">Усі стани</option><option value="on">Доступ надано</option><option value="off">Не підключено</option></select><input id="searchFilter" placeholder="Пошук за назвою або ID"></div>
+    <div id="seanceList" class="seance-list"></div>
+  </div>
+</section>
+
+<section id="verifySection" class="card verify">
+  <div class="verify-head"><div><h3 id="verifyTitle" style="margin:0">Перевірка сеансу</h3><div class="hint">Один seance_id, один зал Філармонії, два реальні клієнтські контури.</div></div><button id="closeVerify" class="btn ghost">Закрити</button></div>
+  <div class="frames">
+    <div class="frame-card"><div class="frame-title">Філармонія • прямий контур</div><iframe id="phFrame" title="Філармонія"></iframe></div>
+    <div class="frame-card"><div id="operatorFrameTitle" class="frame-title">Оператор</div><iframe id="opFrame" title="Оператор"></iframe></div>
+  </div>
+</section>
+
+<div id="globalStatus" class="status">Завантаження…</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../shared/app-config.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script>
+(() => {
+"use strict";
+const $=id=>document.getElementById(id);
+const VA_CLIENT_CODE="va-philharmonic-primary";
+let operators=[],selectedCode=sessionStorage.getItem("gateway-control-operator")||"",control=null,busy=false;
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function fmt(v){if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):new Intl.DateTimeFormat("uk-UA",{dateStyle:"short",timeStyle:"medium"}).format(d);}
+function slug(v){return String(v||"").trim().toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-+|-+$/g,"").slice(0,50);}
+function setStatus(text,kind=""){$("globalStatus").textContent=text;$("globalStatus").className=`status${kind?" "+kind:""}`;}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function rpc(name,args={}){const{data,error}=await PH_SUPABASE.rpc(name,args);if(error)throw error;return data;}
+function selectedOperator(){return operators.find(x=>x.client_code===selectedCode)||null;}
+function connectionState(op){if(!op?.is_active)return{key:"off",text:"ВИМКНЕНО",cls:"off"};if(op?.last_authenticated_at)return{key:"connected",text:"З'ЄДНАННЯ ПІДТВЕРДЖЕНО",cls:"on"};return{key:"waiting",text:"ОЧІКУЄ З'ЄДНАННЯ",cls:"wait"};}
+function operatorIsConnected(){const op=selectedOperator();return Boolean(op?.is_active&&op?.last_authenticated_at);}
+
+function renderOperators(){
+ const host=$("operatorList");
+ if(!operators.length){host.innerHTML='<div class="empty">Операторів ще немає.</div>';return;}
+ host.innerHTML=operators.map(op=>{const st=connectionState(op);return `<button class="op-item ${selectedCode===op.client_code?"active":""}" data-code="${esc(op.client_code)}"><div class="op-line"><div><div class="op-name">${esc(op.subject_name||op.subject_id)}</div><div class="code">${esc(op.client_code)}</div></div><span class="badge ${st.cls}">${st.cls==="on"?"●":st.cls==="wait"?"◐":"○"} ${esc(st.text)}</span></div><div class="op-meta">Сеансів дозволено: <b>${esc(op.enabled_seances??0)}</b> • остання авторизація: ${esc(fmt(op.last_authenticated_at))}</div></button>`;}).join("");
+}
+
+function renderOperatorPanel(){
+ const host=$("operatorPanel"),op=selectedOperator();
+ if(!op){host.innerHTML='<div class="empty">Оберіть оператора.</div>';renderSeancesGate();return;}
+ const st=connectionState(op);
+ host.innerHTML=`<div class="panel-head"><div><h2 style="margin:0 0 4px">${esc(op.subject_name||op.subject_id)}</h2><div class="code">${esc(op.subject_id)} • ${esc(op.client_code)}</div></div><span class="badge ${st.cls}">${st.cls==="on"?"●":st.cls==="wait"?"◐":"○"} ${esc(st.text)}</span></div>
+ <div class="connection-grid"><div class="metric"><span>Доступ оператора</span><b>${op.is_active?"УВІМКНЕНО":"ВИМКНЕНО"}</b></div><div class="metric"><span>Остання авторизація</span><b>${esc(fmt(op.last_authenticated_at))}</b></div><div class="metric"><span>Сеансів дозволено</span><b>${esc(op.enabled_seances??0)}</b></div></div>
+ <div class="connection-actions"><button class="btn ${op.is_active?"danger":"good"}" data-op-action="toggle">${op.is_active?"Відключити оператора":"Увімкнути оператора"}</button><button class="btn" data-op-action="probe" ${!op.is_active?"disabled":""}>Перевірити з'єднання</button>${op.storefront_url?'<button class="btn ghost" data-op-action="storefront">Відкрити вітрину</button>':""}<button class="btn ghost" data-op-action="endpoints">Налаштувати URL</button>${op.client_code!==VA_CLIENT_CODE?'<button class="btn ghost" data-op-action="rotate">Оновити ключ</button>':""}</div>
+ <div id="opMessage" class="status ${st.key==="connected"?"ok":""}">${st.key==="connected"?`Gateway приймав автентифікований запит цього оператора: ${esc(fmt(op.last_authenticated_at))}.`:st.key==="waiting"?"Оператор увімкнений. Тепер його сервер має виконати автентифікований запит до Gateway.":"Оператор вимкнений. Доступ до сеансів заблоковано незалежно від збережених дозволів."}</div>`;
+ renderSeancesGate();
+}
+
+async function loadOperators(keep=true){
+ const data=await rpc("get_gateway_operators");operators=Array.isArray(data?.operators)?data.operators:[];
+ if(!keep||!operators.some(x=>x.client_code===selectedCode))selectedCode=operators[0]?.client_code||"";
+ if(selectedCode)sessionStorage.setItem("gateway-control-operator",selectedCode);
+ renderOperators();renderOperatorPanel();
+}
+async function loadControl(){if(!selectedCode){control=null;renderSeancesGate();return;}control=await rpc("get_gateway_operator_control",{p_client_code:selectedCode});renderSeancesGate();}
+
+function renderSeancesGate(){
+ const op=selectedOperator(),unlocked=Boolean(op&&operatorIsConnected()&&control?.operator?.client_code===op.client_code);
+ $("seanceLocked").hidden=unlocked;$("seanceBody").hidden=!unlocked;
+ if(!unlocked){$("seanceLocked").textContent=!op?"Спочатку оберіть оператора.":!op.is_active?"Оператор вимкнений. Увімкніть його.":!op.last_authenticated_at?"Очікуємо підтвердженого серверного з'єднання оператора з Gateway.":"Завантажуємо сеанси…";return;}
+ $("seanceOperatorName").textContent=op.subject_name||op.subject_id;fillHallFilter();renderSeances();
+}
+function fillHallFilter(){
+ const rows=Array.isArray(control?.seances)?control.seances:[],current=$("hallFilter").value;
+ const halls=[...new Map(rows.filter(x=>x.hall_id).map(x=>[x.hall_id,x.hall_name||x.hall_id])).entries()];
+ $("hallFilter").innerHTML='<option value="">Усі зали</option>'+halls.map(([id,name])=>`<option value="${esc(id)}">${esc(name)}</option>`).join("");
+ if(halls.some(([id])=>id===current))$("hallFilter").value=current;
+}
+function renderSeances(){
+ if(!control)return;const rows=Array.isArray(control.seances)?control.seances:[],hall=$("hallFilter").value,access=$("accessFilter").value,q=$("searchFilter").value.trim().toLowerCase();
+ const filtered=rows.filter(s=>(!hall||s.hall_id===hall)&&(!(access==="on")||s.enabled)&&(!(access==="off")||!s.enabled)&&(!q||[s.show,s.id,s.date,s.hall_name,s.hall_id].join(" ").toLowerCase().includes(q)));
+ $("seanceCount").textContent=`Доступ надано: ${rows.filter(x=>x.enabled).length} • у списку: ${rows.length}`;
+ if(!filtered.length){$("seanceList").innerHTML='<div class="empty">Сеансів за цим фільтром немає.</div>';return;}
+ const tpl=String(control?.operator?.hall_url_template||"").trim();
+ $("seanceList").innerHTML=filtered.map(s=>`<div class="seance"><div><div class="seance-title">${esc(s.show||s.id)}</div><div class="seance-sub">${esc(s.date||"")} ${esc(String(s.time||"").slice(0,5))} • ${esc(s.hall_name||s.hall_id||"")}</div><div class="code">${esc(s.id)}</div></div><div><span class="badge ${s.enabled?"on":"off"}">${s.enabled?"● ПРОДАЖ ON":"○ OFF"}</span></div><div class="permline">READ ${s.can_read_state?"✓":"—"} • HOLD ${s.can_hold?"✓":"—"} • SALE ${s.can_sell?"✓":"—"}</div><div class="actions row-actions"><button class="btn ${s.enabled?"danger":"good"}" data-seance-toggle="${esc(s.id)}" data-enabled="${s.enabled?"1":"0"}">${s.enabled?"Відключити":"Дозволити продаж"}</button><button class="btn ghost" data-verify="${esc(s.id)}" ${!s.enabled||!tpl?"disabled":""}>Перевірити</button></div></div>`).join("");
+}
+function hallUrl(tpl,id){return String(tpl||"").replaceAll("{seance}",encodeURIComponent(id)).replaceAll("{seance_id}",encodeURIComponent(id));}
+
+async function probeSelected(){
+ const op=selectedOperator();if(!op?.is_active)return;const message=$("opMessage"),probe=String(op.probe_url||"").trim();
+ if(!probe){message.className="status";message.textContent="URL перевірки не заданий. Сервер оператора має сам виконати запит до Gateway; після цього натисніть «Оновити».";return;}
+ message.className="status";message.textContent="Перевіряємо реальний маршрут оператора до Gateway…";const t0=performance.now();
+ try{const r=await fetch(probe,{cache:"no-store"}),body=await r.json().catch(()=>({}));if(!r.ok||body?.ok===false)throw new Error(body?.error||`HTTP ${r.status}`);const ms=performance.now()-t0;await sleep(300);await loadOperators(true);await loadControl();const fresh=selectedOperator(),msg=$("opMessage");if(fresh?.last_authenticated_at){msg.className="status ok";msg.textContent=`З'єднання підтверджено реальним запитом оператора • ${ms.toFixed(1)} ms • Gateway auth ${fmt(fresh.last_authenticated_at)}.`;}else{msg.className="status";msg.textContent=`Endpoint відповів за ${ms.toFixed(1)} ms, але Gateway ще не зафіксував автентифікацію. Перевірте серверний адаптер оператора.`;}}catch(e){message.className="status bad";message.textContent=`З'єднання не підтверджено: ${e.message}`;}
+}
+async function toggleOperator(){const op=selectedOperator();if(!op||busy)return;busy=true;try{await rpc("set_gateway_operator_active",{p_client_code:op.client_code,p_is_active:!op.is_active});await loadOperators(true);if(operatorIsConnected())await loadControl();else{control=null;renderSeancesGate();}setStatus(`Оператор ${op.subject_name||op.subject_id}: ${!op.is_active?"увімкнено":"вимкнено"}.`,"ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}finally{busy=false;}}
+async function rotateSecret(){const op=selectedOperator();if(!op||busy)return;if(!confirm("Старий ключ перестане працювати одразу. Оновити ключ?"))return;busy=true;try{const data=await rpc("rotate_gateway_operator_secret",{p_client_code:op.client_code});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");$("createForm").classList.add("show");setStatus("Новий ключ створено. Передайте його серверу оператора зараз.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}finally{busy=false;}}
+async function configureEndpoints(){const op=selectedOperator();if(!op)return;const probe=prompt("URL перевірки з'єднання:",op.probe_url||"");if(probe===null)return;const storefront=prompt("URL вітрини:",op.storefront_url||"");if(storefront===null)return;const hall=prompt("Шаблон URL залу ({seance}):",op.hall_url_template||"");if(hall===null)return;try{await rpc("set_gateway_operator_endpoints",{p_client_code:op.client_code,p_probe_url:probe,p_storefront_url:storefront,p_hall_url_template:hall});await loadOperators(true);await loadControl();setStatus("URL оператора оновлено.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}}
+async function toggleSeance(id,enabled){if(!operatorIsConnected()||busy)return;busy=true;try{await rpc("set_gateway_seance_operator",{p_seance_id:id,p_client_code:selectedCode,p_enabled:!enabled});await loadControl();await loadOperators(true);renderSeancesGate();setStatus(`${id}: ${!enabled?"продаж оператору дозволено":"доступ оператора вимкнено"}.`,"ok");}catch(e){setStatus(`Сеанс: ${e.message}`,"bad");}finally{busy=false;}}
+function openVerify(id){const op=selectedOperator(),tpl=String(control?.operator?.hall_url_template||"").trim();if(!op||!tpl)return;const row=(control?.seances||[]).find(x=>x.id===id);$("verifyTitle").textContent=`Перевірка • ${row?.show||id} • ${id}`;$("operatorFrameTitle").textContent=`${op.subject_name||op.subject_id} • через Gateway`;$("phFrame").src=`../site/pages/hall.html?seance=${encodeURIComponent(id)}`;$("opFrame").src=hallUrl(tpl,id);$("verifySection").classList.add("show");$("verifySection").scrollIntoView({behavior:"smooth",block:"start"});}
+async function createOperator(){if(busy)return;const name=$("newName").value.trim(),subject=$("newSubject").value.trim(),client=$("newClient").value.trim();if(!name||!subject||!client){setStatus("Заповніть назву, системний код і технічний клієнт.","bad");return;}busy=true;$("createBtn").disabled=true;try{const data=await rpc("create_gateway_operator",{p_subject_id:subject,p_subject_name:name,p_client_code:client,p_client_label:$("newLabel").value.trim()||"Основний серверний клієнт"});await rpc("set_gateway_operator_endpoints",{p_client_code:client,p_probe_url:$("newProbe").value.trim()||null,p_storefront_url:$("newStorefront").value.trim()||null,p_hall_url_template:$("newHall").value.trim()||null});await rpc("set_gateway_operator_active",{p_client_code:client,p_is_active:false});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");selectedCode=client;await loadOperators(true);control=null;renderSeancesGate();setStatus("Оператор створений у стані OFF. Передайте ключ серверу, увімкніть оператора і перевірте з'єднання.","ok");}catch(e){setStatus(`Не вдалося створити оператора: ${e.message}`,"bad");}finally{busy=false;$("createBtn").disabled=false;}}
+
+$("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;renderOperators();renderOperatorPanel();if(operatorIsConnected())try{await loadControl();}catch(e){setStatus(`Сеанси: ${e.message}`,"bad");}});
+$("operatorPanel").addEventListener("click",e=>{const btn=e.target.closest("[data-op-action]");if(!btn)return;const a=btn.dataset.opAction;if(a==="toggle")toggleOperator();if(a==="probe")probeSelected();if(a==="storefront"){const op=selectedOperator();if(op?.storefront_url)window.open(op.storefront_url,"_blank","noopener");}if(a==="endpoints")configureEndpoints();if(a==="rotate")rotateSecret();});
+$("seanceList").addEventListener("click",e=>{const t=e.target.closest("[data-seance-toggle]");if(t){toggleSeance(t.dataset.seanceToggle,t.dataset.enabled==="1");return;}const v=e.target.closest("[data-verify]");if(v)openVerify(v.dataset.verify);});
+["hallFilter","accessFilter"].forEach(id=>$(id).addEventListener("change",renderSeances));$("searchFilter").addEventListener("input",renderSeances);
+$("refreshAll").addEventListener("click",async()=>{try{await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Стан оновлено.","ok");}catch(e){setStatus(`Оновлення: ${e.message}`,"bad");}});
+$("closeVerify").addEventListener("click",()=>{$("verifySection").classList.remove("show");$("phFrame").src="about:blank";$("opFrame").src="about:blank";});
+$("createToggle").addEventListener("click",()=>$("createForm").classList.toggle("show"));$("createBtn").addEventListener("click",createOperator);
+$("copySecret").addEventListener("click",async()=>{const v=$("secretValue").textContent.trim();if(!v)return;await navigator.clipboard.writeText(v);setStatus("Ключ скопійовано.","ok");});
+$("newName").addEventListener("input",()=>{const s=slug($("newName").value);if(!$("newSubject").dataset.manual)$("newSubject").value=s;if(!$("newClient").dataset.manual)$("newClient").value=s?`${s}-primary`:"";});
+$("newSubject").addEventListener("input",()=>{$("newSubject").dataset.manual="1";});$("newClient").addEventListener("input",()=>{$("newClient").dataset.manual="1";});
+
+(async()=>{try{const profile=await PhAuth.requirePermission("gateway.manage");$("identity").textContent=`${profile.display_name} • ${profile.roles.join(", ")}`;await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Пульт готовий.","ok");}catch(e){if(e.message==="authentication_required")return;console.error(e);$("identity").textContent="Доступ заборонено";setStatus(`Потрібен gateway.manage або не встановлено Operator Control SQL: ${e.message}`,"bad");}})();
+})();
+</script>
+</body>
+</html>
