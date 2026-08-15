@@ -617,6 +617,7 @@
       let geometry = null;
       let busy = false;
       let countdownTimer = null;
+      let liveStateTimer = null;
       let hallViewer = null;
       let HALL_VISUAL_CONFIG = null;
 
@@ -727,6 +728,70 @@
         message.className = isError
           ? "message error"
           : "message";
+      }
+
+      function flightDeckErrorCode(error) {
+        const text = String(
+          error?.message ||
+          error?.details ||
+          error?.code ||
+          error ||
+          ""
+        );
+
+        if (
+          text.includes("seat_conflict") ||
+          String(error?.code || "") === "40001"
+        ) {
+          return "seat_conflict";
+        }
+
+        return text.slice(0, 120) || "rejected";
+      }
+
+      function reportFlightDeckHold(payload) {
+        if (window.parent === window) return;
+
+        try {
+          window.parent.postMessage(
+            {
+              type: "gateway-flight-deck-hold",
+              payload
+            },
+            location.origin
+          );
+        } catch (_) {}
+      }
+
+      function stateSignature(value) {
+        const seats = Array.isArray(value?.seats) ? value.seats : [];
+        return seats
+          .map(row => `${row?.seat_key || ""}:${row?.state || ""}:${row?.hold_expires_at || ""}`)
+          .join("|") +
+          `#${value?.my_hold_expires_at || ""}`;
+      }
+
+      let lastLiveStateSignature = "";
+
+      async function refreshLiveState() {
+        if (busy || document.visibilityState === "hidden" || !seanceId) return;
+
+        try {
+          const nextState = await loadState();
+          const signature = stateSignature(nextState);
+
+          if (signature !== lastLiveStateSignature) {
+            syncState(nextState);
+            lastLiveStateSignature = signature;
+          }
+        } catch (error) {
+          console.warn("Live hall state refresh failed", error);
+        }
+      }
+
+      function startLiveStateSync() {
+        clearInterval(liveStateTimer);
+        liveStateTimer = setInterval(refreshLiveState, 650);
       }
 
       function formatDate(value) {
@@ -1182,6 +1247,7 @@
 
       function syncState(nextState) {
         hallState = nextState;
+        lastLiveStateSignature = stateSignature(nextState);
         stateByKey.clear();
         selected.clear();
 
@@ -1280,6 +1346,12 @@
       }
 
       async function saveSelection(keys) {
+        const before = new Set(selected);
+        const addedKeys = (keys || []).filter(key => !before.has(key));
+        const telemetrySeat = String(addedKeys[addedKeys.length - 1] || "");
+        const startedAt = Date.now();
+        const t0 = performance.now();
+
         busy = true;
         setMessage("Оновлення вибору…");
         renderSummary();
@@ -1296,6 +1368,18 @@
                 p_hold_token: getHoldToken()
               });
 
+          if (telemetrySeat) {
+            reportFlightDeckHold({
+              source: "ph",
+              seance: seanceId,
+              seat: telemetrySeat,
+              startedAt,
+              ms: performance.now() - t0,
+              result: "succeeded",
+              code: "hold_accepted"
+            });
+          }
+
           syncState(nextState);
           setMessage(
             keys.length
@@ -1305,6 +1389,18 @@
 
         } catch (error) {
           console.error(error);
+
+          if (telemetrySeat) {
+            reportFlightDeckHold({
+              source: "ph",
+              seance: seanceId,
+              seat: telemetrySeat,
+              startedAt,
+              ms: performance.now() - t0,
+              result: "rejected",
+              code: flightDeckErrorCode(error)
+            });
+          }
 
           if (
             error.message.includes("seat_conflict") ||
@@ -1613,6 +1709,7 @@
           }
 
           initHallViewer();
+          startLiveStateSync();
 
         } catch (error) {
           console.error(error);
@@ -1632,7 +1729,26 @@
       clearBtn.addEventListener("click", clearSelection);
       continueBtn.addEventListener("click", goToOrder);
 
+      window.addEventListener("message", event => {
+        if (
+          event.origin !== location.origin ||
+          event.data?.type !== "gateway-flight-deck-refresh"
+        ) {
+          return;
+        }
+
+        if (
+          event.data?.seance &&
+          String(event.data.seance) !== String(seanceId)
+        ) {
+          return;
+        }
+
+        refreshLiveState();
+      });
+
       window.addEventListener("pagehide", () => {
+        clearInterval(liveStateTimer);
         hallViewer?.destroy?.();
       });
 
