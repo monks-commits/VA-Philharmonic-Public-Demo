@@ -57,6 +57,23 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
 .audit-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
 .audit-meta .metric{padding:9px 10px}.audit-table-wrap{overflow:auto}.audit-table{width:100%;border-collapse:collapse;font-size:13px}.audit-table th,.audit-table td{padding:9px 12px;border-bottom:1px solid #edf2f5;text-align:right;white-space:nowrap}.audit-table th:first-child,.audit-table td:first-child{text-align:left}.audit-table th{font-size:11px;color:var(--muted);background:#fbfdfe;text-transform:uppercase;letter-spacing:.03em}.delta-ok{color:var(--green);font-weight:850}.delta-bad{color:var(--red);font-weight:900}
 .audit-detail{padding:12px 14px}.audit-detail h4{margin:0 0 8px}.audit-empty{color:var(--green);font-weight:800}.audit-issues{display:grid;gap:6px;max-height:260px;overflow:auto}.audit-issue{display:grid;grid-template-columns:150px 1fr 1fr;gap:8px;padding:8px 10px;border:1px solid #f0d2d4;background:#fff7f7;border-radius:9px;font-size:12px}.audit-issue .seat{font-family:ui-monospace,Consolas,monospace;font-weight:850}.audit-note{padding:10px 14px;background:#f8fbfd;color:var(--muted);font-size:12px}
+
+.journal{margin-top:16px}
+.journal-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
+.journal-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.journal-tools select{min-width:210px;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:#fff;color:var(--ink)}
+.journal-count{font-size:12px;color:var(--muted)}
+.journal-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:13px}
+.journal-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+.journal-table th,.journal-table td{padding:9px 10px;border-bottom:1px solid #edf2f5;text-align:left;white-space:nowrap;vertical-align:top}
+.journal-table th{font-size:10px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);background:#fbfdfe}
+.journal-table tr:last-child td{border-bottom:0}
+.journal-table tr.issue td{background:#fff8f8}
+.journal-code{font-family:ui-monospace,Consolas,monospace}
+.journal-result.ok{color:var(--green);font-weight:850}
+.journal-result.bad{color:var(--red);font-weight:900}
+.journal-empty{padding:24px;text-align:center;color:var(--muted)}
+
 @media(max-width:1050px){.operator-layout{grid-template-columns:1fr}.operator-list{max-height:none}.seance{grid-template-columns:1fr 120px 150px}.seance .row-actions{grid-column:1/-1}.frames{grid-template-columns:1fr}.audit-meta{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.page{width:min(100% - 14px,1500px)}.hero{align-items:flex-start;flex-direction:column}.connection-grid,.form-grid,.filters,.audit-meta{grid-template-columns:1fr}.seance{grid-template-columns:1fr}.frames iframe{height:560px}.audit-head{flex-direction:column}.audit-issue{grid-template-columns:1fr}}
 </style>
@@ -121,6 +138,28 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
   </div>
 </section>
 
+
+<section id="journalSection" class="card journal">
+  <div class="step-title"><div class="stepno">3</div><div><h3 style="margin:0">Журнал Gateway</h3><div class="hint">Реальні HOLD / RELEASE / SALE та відмови вибраного оператора. Успішні STATE-опитування не засмічують журнал.</div></div></div>
+  <div class="journal-head">
+    <div><b id="journalOperatorName">Оператор не обраний</b><div id="journalCount" class="journal-count">—</div></div>
+    <div class="journal-tools">
+      <select id="journalMode">
+        <option value="issues">Конфлікти та помилки</option>
+        <option value="all">Усі бізнес-операції</option>
+      </select>
+      <select id="journalSeance"><option value="">Усі сеанси</option></select>
+      <button id="journalRefresh" class="btn ghost">Оновити журнал</button>
+    </div>
+  </div>
+  <div class="journal-table-wrap">
+    <table class="journal-table">
+      <thead><tr><th>Час</th><th>Сеанс</th><th>Операція</th><th>Місце</th><th>Результат</th><th>Код</th><th>ms</th><th>request_id</th></tr></thead>
+      <tbody id="journalBody"><tr><td colspan="8" class="journal-empty">Оберіть оператора.</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
 <section id="verifySection" class="card verify">
   <div class="verify-head"><div><h3 id="verifyTitle" style="margin:0">Перевірка сеансу</h3><div id="verifyHint" class="hint">Один seance_id: прямий контур Філармонії та операторський STATE через Gateway.</div></div><button id="closeVerify" class="btn ghost">Закрити</button></div>
   <div class="frames">
@@ -160,7 +199,7 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
 "use strict";
 const $=id=>document.getElementById(id);
 const VA_CLIENT_CODE="va-philharmonic-primary";
-let operators=[],selectedCode=sessionStorage.getItem("gateway-control-operator")||"",control=null,busy=false,verifySeanceId="",auditTimer=0,auditRunning=false;
+let operators=[],selectedCode=sessionStorage.getItem("gateway-control-operator")||"",control=null,busy=false,verifySeanceId="",auditTimer=0,auditRunning=false,journalEvents=[],journalTimer=0;
 
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function fmt(v){if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):new Intl.DateTimeFormat("uk-UA",{dateStyle:"short",timeStyle:"medium"}).format(d);}
@@ -196,6 +235,64 @@ async function loadOperators(keep=true){
  renderOperators();renderOperatorPanel();
 }
 async function loadControl(){if(!selectedCode){control=null;renderSeancesGate();return;}control=await rpc("get_gateway_operator_control",{p_client_code:selectedCode});renderSeancesGate();}
+
+function journalIssue(e){
+ const result=String(e?.result||"").toLowerCase();
+ const code=String(e?.response_code||"").toLowerCase();
+ const http=Number(e?.http_status||0);
+ return result==="rejected"||result==="failed"||http>=400||
+   ["seat_conflict","seat_not_available","seat_not_for_sale","hold_rejected","sale_rejected"].some(x=>code.includes(x));
+}
+function journalTime(v){
+ if(!v)return"—";
+ const d=new Date(v);if(Number.isNaN(d.getTime()))return String(v);
+ return d.toLocaleTimeString("uk-UA",{hour:"2-digit",minute:"2-digit",second:"2-digit",fractionalSecondDigits:3});
+}
+function journalOperation(v){
+ const m={hold_create:"HOLD",hold_release:"RELEASE",sale_confirm:"SALE",state_read:"STATE"};
+ return m[String(v||"")]||String(v||"—");
+}
+function fillJournalSeances(){
+ const sel=$("journalSeance"),current=sel.value;
+ const ids=[...new Set(journalEvents.map(e=>String(e?.seance_id||"")).filter(Boolean))];
+ sel.innerHTML='<option value="">Усі сеанси</option>'+ids.map(id=>`<option value="${esc(id)}">${esc(id)}</option>`).join("");
+ if(ids.includes(current))sel.value=current;
+}
+function renderJournal(){
+ const op=selectedOperator();
+ $("journalOperatorName").textContent=op?(op.subject_name||op.subject_id):"Оператор не обраний";
+ if(!op){$("journalCount").textContent="—";$("journalBody").innerHTML='<tr><td colspan="8" class="journal-empty">Оберіть оператора.</td></tr>';return;}
+ const mode=$("journalMode").value;
+ const sid=$("journalSeance").value;
+ let rows=journalEvents.filter(e=>(!sid||String(e.seance_id||"")===sid));
+ const issueCount=rows.filter(journalIssue).length;
+ if(mode==="issues")rows=rows.filter(journalIssue);
+ $("journalCount").textContent=`Подій: ${rows.length} • конфліктів/помилок: ${issueCount}`;
+ if(!rows.length){$("journalBody").innerHTML=`<tr><td colspan="8" class="journal-empty">${mode==="issues"?"Конфліктів і помилок за цим фільтром немає.":"Бізнес-операцій за цим фільтром немає."}</td></tr>`;return;}
+ $("journalBody").innerHTML=rows.map(e=>{
+   const issue=journalIssue(e);
+   const seats=Array.isArray(e?.seat_keys)&&e.seat_keys.length?e.seat_keys.join(", "):"—";
+   const result=String(e?.result||"—");
+   const code=String(e?.response_code||e?.details?.failure_code||"—");
+   const ms=Number(e?.duration_ms);
+   return `<tr class="${issue?"issue":""}"><td>${esc(journalTime(e.started_at||e.finished_at))}</td><td class="journal-code">${esc(e.seance_id||"—")}</td><td><b>${esc(journalOperation(e.operation))}</b></td><td class="journal-code">${esc(seats)}</td><td><span class="journal-result ${issue?"bad":"ok"}">${esc(result)}</span></td><td class="journal-code">${esc(code)}</td><td>${Number.isFinite(ms)?esc(ms.toFixed(1)):"—"}</td><td class="journal-code">${esc(e.request_id||"—")}</td></tr>`;
+ }).join("");
+}
+async function loadJournal(silent=false){
+ if(!selectedCode){journalEvents=[];fillJournalSeances();renderJournal();return;}
+ try{
+   const data=await rpc("get_gateway_operator_journal",{p_client_code:selectedCode,p_seance_id:null,p_limit:80});
+   journalEvents=Array.isArray(data?.events)?data.events:[];
+   fillJournalSeances();
+   renderJournal();
+ }catch(e){
+   if(!silent){$("journalBody").innerHTML=`<tr><td colspan="8" class="journal-empty">Журнал недоступний: ${esc(e.message)}</td></tr>`;}
+ }
+}
+function startJournalPolling(){
+ clearInterval(journalTimer);
+ journalTimer=setInterval(()=>{if(!document.hidden&&selectedCode)loadJournal(true);},5000);
+}
 
 function renderSeancesGate(){
  const op=selectedOperator(),unlocked=Boolean(op&&operatorIsConnected()&&control?.operator?.client_code===op.client_code);
@@ -381,19 +478,20 @@ function openVerify(id){
 }
 async function createOperator(){if(busy)return;const name=$("newName").value.trim(),subject=$("newSubject").value.trim(),client=$("newClient").value.trim();if(!name||!subject||!client){setStatus("Заповніть назву, системний код і технічний клієнт.","bad");return;}busy=true;$("createBtn").disabled=true;try{const data=await rpc("create_gateway_operator",{p_subject_id:subject,p_subject_name:name,p_client_code:client,p_client_label:$("newLabel").value.trim()||"Основний серверний клієнт"});await rpc("set_gateway_operator_endpoints",{p_client_code:client,p_probe_url:$("newProbe").value.trim()||null,p_storefront_url:$("newStorefront").value.trim()||null,p_hall_url_template:$("newHall").value.trim()||null});await rpc("set_gateway_operator_state_endpoint",{p_client_code:client,p_state_url_template:$("newState").value.trim()||null});await rpc("set_gateway_operator_active",{p_client_code:client,p_is_active:false});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");selectedCode=client;await loadOperators(true);control=null;renderSeancesGate();setStatus("Оператор створений у стані OFF. Передайте ключ серверу, увімкніть оператора і перевірте з'єднання.","ok");}catch(e){setStatus(`Не вдалося створити оператора: ${e.message}`,"bad");}finally{busy=false;$("createBtn").disabled=false;}}
 
-$("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;$("endpointEditor").classList.remove("show");selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;renderOperators();renderOperatorPanel();if(operatorIsConnected())try{await loadControl();}catch(e){setStatus(`Сеанси: ${e.message}`,"bad");}});
+$("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;$("endpointEditor").classList.remove("show");selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;journalEvents=[];renderOperators();renderOperatorPanel();renderJournal();try{if(operatorIsConnected())await loadControl();await loadJournal();}catch(e){setStatus(`Оператор: ${e.message}`,"bad");}});
 $("operatorPanel").addEventListener("click",e=>{const btn=e.target.closest("[data-op-action]");if(!btn)return;const a=btn.dataset.opAction;if(a==="toggle")toggleOperator();if(a==="probe")probeSelected();if(a==="storefront"){const op=selectedOperator();if(op?.storefront_url)window.open(op.storefront_url,"_blank","noopener");}if(a==="endpoints")configureEndpoints();if(a==="rotate")rotateSecret();});
 $("endpointSave").addEventListener("click",saveEndpoints);$("endpointCancel").addEventListener("click",cancelEndpoints);
 $("seanceList").addEventListener("click",e=>{const t=e.target.closest("[data-seance-toggle]");if(t){toggleSeance(t.dataset.seanceToggle,t.dataset.enabled==="1");return;}const v=e.target.closest("[data-verify]");if(v)openVerify(v.dataset.verify);});
 ["hallFilter","accessFilter"].forEach(id=>$(id).addEventListener("change",renderSeances));$("searchFilter").addEventListener("input",renderSeances);
-$("refreshAll").addEventListener("click",async()=>{try{await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Стан оновлено.","ok");}catch(e){setStatus(`Оновлення: ${e.message}`,"bad");}});
+$("refreshAll").addEventListener("click",async()=>{try{await loadOperators(true);if(operatorIsConnected())await loadControl();await loadJournal();setStatus("Стан оновлено.","ok");}catch(e){setStatus(`Оновлення: ${e.message}`,"bad");}});
 $("closeVerify").addEventListener("click",()=>{stopAudit();$("verifySection").classList.remove("show");$("phFrame").src="about:blank";const f=$("opFrame");f.removeAttribute("srcdoc");f.src="about:blank";});$("auditNowBtn").addEventListener("click",auditNow);
+$("journalRefresh").addEventListener("click",()=>loadJournal(false));$("journalMode").addEventListener("change",renderJournal);$("journalSeance").addEventListener("change",renderJournal);
 $("createToggle").addEventListener("click",()=>$("createForm").classList.toggle("show"));$("createBtn").addEventListener("click",createOperator);
 $("copySecret").addEventListener("click",async()=>{const v=$("secretValue").textContent.trim();if(!v)return;await navigator.clipboard.writeText(v);setStatus("Ключ скопійовано.","ok");});
 $("newName").addEventListener("input",()=>{const s=slug($("newName").value);if(!$("newSubject").dataset.manual)$("newSubject").value=s;if(!$("newClient").dataset.manual)$("newClient").value=s?`${s}-primary`:"";});
 $("newSubject").addEventListener("input",()=>{$("newSubject").dataset.manual="1";});$("newClient").addEventListener("input",()=>{$("newClient").dataset.manual="1";});
 
-(async()=>{try{const profile=await PhAuth.requirePermission("gateway.manage");$("identity").textContent=`${profile.display_name} • ${profile.roles.join(", ")}`;await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Пульт готовий.","ok");}catch(e){if(e.message==="authentication_required")return;console.error(e);$("identity").textContent="Доступ заборонено";setStatus(`Потрібен gateway.manage або не встановлено Operator Control SQL: ${e.message}`,"bad");}})();
+(async()=>{try{const profile=await PhAuth.requirePermission("gateway.manage");$("identity").textContent=`${profile.display_name} • ${profile.roles.join(", ")}`;await loadOperators(true);if(operatorIsConnected())await loadControl();await loadJournal();startJournalPolling();setStatus("Пульт готовий.","ok");}catch(e){if(e.message==="authentication_required")return;console.error(e);$("identity").textContent="Доступ заборонено";setStatus(`Потрібен gateway.manage або не встановлено Operator Control SQL: ${e.message}`,"bad");}})();
 })();
 </script>
 </body>
