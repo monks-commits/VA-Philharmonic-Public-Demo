@@ -43,6 +43,7 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
 .create-wrap{margin-top:14px}.create-toggle{width:100%}.create-form{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
 .create-form.show{display:block}.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:800;color:#405868}.field input,.filters select,.filters input{width:100%;min-height:40px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff;color:var(--ink)}
 .secret{display:none;margin-top:12px;padding:13px;border:1px solid #e8d07e;background:#fff8dc;border-radius:12px}.secret.show{display:block}.secret code{display:block;background:#fff;padding:9px;border:1px solid #eadb9e;border-radius:8px;word-break:break-all;margin:8px 0}
+.endpoint-editor{display:none;margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fbfdfe}.endpoint-editor.show{display:block}.endpoint-editor h3{margin:0 0 10px}.endpoint-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}.endpoint-editor .hint{margin-top:8px}
 .seances{margin-top:16px}.seance-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:10px}
 .filters{display:grid;grid-template-columns:220px 180px minmax(220px,1fr);gap:8px;margin-bottom:10px}
 .seance-list{display:grid;gap:8px}.seance{display:grid;grid-template-columns:minmax(0,1fr) 150px 180px 280px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:12px;background:#fff}
@@ -93,7 +94,20 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
         </div>
       </div>
     </div>
-    <div id="operatorPanel"><div class="empty">Оберіть оператора.</div></div>
+    <div>
+      <div id="operatorPanel"><div class="empty">Оберіть оператора.</div></div>
+      <div id="endpointEditor" class="endpoint-editor">
+        <h3 id="endpointTitle">URL оператора</h3>
+        <div class="form-grid">
+          <div class="field full"><label>URL перевірки з'єднання</label><input id="endpointProbe" placeholder="https://operator.example/gateway-check"></div>
+          <div class="field full"><label>URL вітрини (необов'язково)</label><input id="endpointStorefront" placeholder="https://operator.example/"></div>
+          <div class="field full"><label>Шаблон URL залу ({seance}) (необов'язково)</label><input id="endpointHall" placeholder="https://operator.example/hall?seance={seance}"></div>
+          <div class="field full"><label>Шаблон URL STATE ({seance}) для автоматичної звірки</label><input id="endpointState" placeholder="https://operator.example/gateway-state?seance={seance}"></div>
+        </div>
+        <div class="hint">Можна спокійно переходити в іншу вкладку, копіювати адреси і повернутися: введені значення не зникнуть.</div>
+        <div class="endpoint-actions"><button id="endpointCancel" class="btn ghost">Скасувати</button><button id="endpointSave" class="btn good">Зберегти URL</button></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -308,13 +322,43 @@ async function probeSelected(){
 }
 async function toggleOperator(){const op=selectedOperator();if(!op||busy)return;busy=true;try{await rpc("set_gateway_operator_active",{p_client_code:op.client_code,p_is_active:!op.is_active});await loadOperators(true);if(operatorIsConnected())await loadControl();else{control=null;renderSeancesGate();}setStatus(`Оператор ${op.subject_name||op.subject_id}: ${!op.is_active?"увімкнено":"вимкнено"}.`,"ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}finally{busy=false;}}
 async function rotateSecret(){const op=selectedOperator();if(!op||busy)return;if(!confirm("Старий ключ перестане працювати одразу. Оновити ключ?"))return;busy=true;try{const data=await rpc("rotate_gateway_operator_secret",{p_client_code:op.client_code});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");$("createForm").classList.add("show");setStatus("Новий ключ створено. Передайте його серверу оператора зараз.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}finally{busy=false;}}
-async function configureEndpoints(){const op=selectedOperator();if(!op)return;const probe=prompt("URL перевірки з'єднання:",op.probe_url||"");if(probe===null)return;const storefront=prompt("URL вітрини:",op.storefront_url||"");if(storefront===null)return;const hall=prompt("Шаблон URL залу ({seance}):",op.hall_url_template||"");if(hall===null)return;const state=prompt("Шаблон URL STATE ({seance}) для звірки:",op.state_url_template||"");if(state===null)return;try{await rpc("set_gateway_operator_endpoints",{p_client_code:op.client_code,p_probe_url:probe,p_storefront_url:storefront,p_hall_url_template:hall});await rpc("set_gateway_operator_state_endpoint",{p_client_code:op.client_code,p_state_url_template:state});await loadOperators(true);await loadControl();setStatus("URL оператора оновлено.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}}
+function configureEndpoints(){
+ const op=selectedOperator();if(!op)return;
+ const editor=$("endpointEditor");editor.dataset.clientCode=op.client_code;
+ $("endpointTitle").textContent=`URL • ${op.subject_name||op.subject_id}`;
+ $("endpointProbe").value=op.probe_url||"";
+ $("endpointStorefront").value=op.storefront_url||"";
+ $("endpointHall").value=op.hall_url_template||"";
+ $("endpointState").value=op.state_url_template||"";
+ editor.classList.add("show");
+ editor.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+async function saveEndpoints(){
+ const op=selectedOperator(),editor=$("endpointEditor");
+ if(!op||editor.dataset.clientCode!==op.client_code||busy)return;
+ busy=true;$("endpointSave").disabled=true;
+ try{
+   const probe=$("endpointProbe").value.trim()||null;
+   const storefront=$("endpointStorefront").value.trim()||null;
+   const hall=$("endpointHall").value.trim()||null;
+   const state=$("endpointState").value.trim()||null;
+   await rpc("set_gateway_operator_endpoints",{p_client_code:op.client_code,p_probe_url:probe,p_storefront_url:storefront,p_hall_url_template:hall});
+   await rpc("set_gateway_operator_state_endpoint",{p_client_code:op.client_code,p_state_url_template:state});
+   editor.classList.remove("show");
+   await loadOperators(true);
+   if(operatorIsConnected())await loadControl();
+   setStatus("URL оператора оновлено.","ok");
+ }catch(e){setStatus(`Помилка: ${e.message}`,"bad");}
+ finally{busy=false;$("endpointSave").disabled=false;}
+}
+function cancelEndpoints(){$("endpointEditor").classList.remove("show");}
 async function toggleSeance(id,enabled){if(!operatorIsConnected()||busy)return;busy=true;try{await rpc("set_gateway_seance_operator",{p_seance_id:id,p_client_code:selectedCode,p_enabled:!enabled});await loadControl();await loadOperators(true);renderSeancesGate();setStatus(`${id}: ${!enabled?"продаж оператору дозволено":"доступ оператора вимкнено"}.`,"ok");}catch(e){setStatus(`Сеанс: ${e.message}`,"bad");}finally{busy=false;}}
 function openVerify(id){const op=selectedOperator(),tpl=String(control?.operator?.hall_url_template||"").trim();if(!op||!tpl)return;const row=(control?.seances||[]).find(x=>x.id===id);$("verifyTitle").textContent=`Перевірка • ${row?.show||id} • ${id}`;$("operatorFrameTitle").textContent=`${op.subject_name||op.subject_id} • через Gateway`;$("phFrame").src=`../site/pages/hall.html?seance=${encodeURIComponent(id)}`;$("opFrame").src=hallUrl(tpl,id);$("verifySection").classList.add("show");startAudit(id);$("verifySection").scrollIntoView({behavior:"smooth",block:"start"});}
 async function createOperator(){if(busy)return;const name=$("newName").value.trim(),subject=$("newSubject").value.trim(),client=$("newClient").value.trim();if(!name||!subject||!client){setStatus("Заповніть назву, системний код і технічний клієнт.","bad");return;}busy=true;$("createBtn").disabled=true;try{const data=await rpc("create_gateway_operator",{p_subject_id:subject,p_subject_name:name,p_client_code:client,p_client_label:$("newLabel").value.trim()||"Основний серверний клієнт"});await rpc("set_gateway_operator_endpoints",{p_client_code:client,p_probe_url:$("newProbe").value.trim()||null,p_storefront_url:$("newStorefront").value.trim()||null,p_hall_url_template:$("newHall").value.trim()||null});await rpc("set_gateway_operator_state_endpoint",{p_client_code:client,p_state_url_template:$("newState").value.trim()||null});await rpc("set_gateway_operator_active",{p_client_code:client,p_is_active:false});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");selectedCode=client;await loadOperators(true);control=null;renderSeancesGate();setStatus("Оператор створений у стані OFF. Передайте ключ серверу, увімкніть оператора і перевірте з'єднання.","ok");}catch(e){setStatus(`Не вдалося створити оператора: ${e.message}`,"bad");}finally{busy=false;$("createBtn").disabled=false;}}
 
-$("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;renderOperators();renderOperatorPanel();if(operatorIsConnected())try{await loadControl();}catch(e){setStatus(`Сеанси: ${e.message}`,"bad");}});
+$("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;$("endpointEditor").classList.remove("show");selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;renderOperators();renderOperatorPanel();if(operatorIsConnected())try{await loadControl();}catch(e){setStatus(`Сеанси: ${e.message}`,"bad");}});
 $("operatorPanel").addEventListener("click",e=>{const btn=e.target.closest("[data-op-action]");if(!btn)return;const a=btn.dataset.opAction;if(a==="toggle")toggleOperator();if(a==="probe")probeSelected();if(a==="storefront"){const op=selectedOperator();if(op?.storefront_url)window.open(op.storefront_url,"_blank","noopener");}if(a==="endpoints")configureEndpoints();if(a==="rotate")rotateSecret();});
+$("endpointSave").addEventListener("click",saveEndpoints);$("endpointCancel").addEventListener("click",cancelEndpoints);
 $("seanceList").addEventListener("click",e=>{const t=e.target.closest("[data-seance-toggle]");if(t){toggleSeance(t.dataset.seanceToggle,t.dataset.enabled==="1");return;}const v=e.target.closest("[data-verify]");if(v)openVerify(v.dataset.verify);});
 ["hallFilter","accessFilter"].forEach(id=>$(id).addEventListener("change",renderSeances));$("searchFilter").addEventListener("input",renderSeances);
 $("refreshAll").addEventListener("click",async()=>{try{await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Стан оновлено.","ok");}catch(e){setStatus(`Оновлення: ${e.message}`,"bad");}});
