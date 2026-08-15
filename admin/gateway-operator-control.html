@@ -49,8 +49,15 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
 .seance-title{font-weight:900}.seance-sub{font-size:12px;color:var(--muted);margin-top:3px}.permline{font-size:11px;color:var(--muted)}
 .verify{margin-top:16px;display:none}.verify.show{display:block}.verify-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
 .frames{display:grid;grid-template-columns:1fr 1fr;gap:10px}.frame-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.frame-title{padding:9px 11px;border-bottom:1px solid var(--line);font-weight:900}.frame-card iframe{width:100%;height:680px;border:0;background:#fff}
-@media(max-width:1050px){.operator-layout{grid-template-columns:1fr}.operator-list{max-height:none}.seance{grid-template-columns:1fr 120px 150px}.seance .row-actions{grid-column:1/-1}.frames{grid-template-columns:1fr}}
-@media(max-width:700px){.page{width:min(100% - 14px,1500px)}.hero{align-items:flex-start;flex-direction:column}.connection-grid,.form-grid,.filters{grid-template-columns:1fr}.seance{grid-template-columns:1fr}.frames iframe{height:560px}}
+.audit{margin-top:14px;border:1px solid var(--line);border-radius:15px;background:#fff;overflow:hidden}
+.audit-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:14px;border-bottom:1px solid var(--line);background:#fbfdfe}
+.audit-title{display:flex;align-items:center;gap:10px}.audit-title h3{margin:0}.audit-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.audit-pill{display:inline-flex;align-items:center;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:950}.audit-pill.ok{background:#e8f7ef;color:var(--green)}.audit-pill.wait{background:#fff7df;color:#8a650c}.audit-pill.bad{background:#fff0f0;color:var(--red)}.audit-pill.idle{background:#eef4f7;color:var(--muted)}
+.audit-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.audit-meta .metric{padding:9px 10px}.audit-table-wrap{overflow:auto}.audit-table{width:100%;border-collapse:collapse;font-size:13px}.audit-table th,.audit-table td{padding:9px 12px;border-bottom:1px solid #edf2f5;text-align:right;white-space:nowrap}.audit-table th:first-child,.audit-table td:first-child{text-align:left}.audit-table th{font-size:11px;color:var(--muted);background:#fbfdfe;text-transform:uppercase;letter-spacing:.03em}.delta-ok{color:var(--green);font-weight:850}.delta-bad{color:var(--red);font-weight:900}
+.audit-detail{padding:12px 14px}.audit-detail h4{margin:0 0 8px}.audit-empty{color:var(--green);font-weight:800}.audit-issues{display:grid;gap:6px;max-height:260px;overflow:auto}.audit-issue{display:grid;grid-template-columns:150px 1fr 1fr;gap:8px;padding:8px 10px;border:1px solid #f0d2d4;background:#fff7f7;border-radius:9px;font-size:12px}.audit-issue .seat{font-family:ui-monospace,Consolas,monospace;font-weight:850}.audit-note{padding:10px 14px;background:#f8fbfd;color:var(--muted);font-size:12px}
+@media(max-width:1050px){.operator-layout{grid-template-columns:1fr}.operator-list{max-height:none}.seance{grid-template-columns:1fr 120px 150px}.seance .row-actions{grid-column:1/-1}.frames{grid-template-columns:1fr}.audit-meta{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.page{width:min(100% - 14px,1500px)}.hero{align-items:flex-start;flex-direction:column}.connection-grid,.form-grid,.filters,.audit-meta{grid-template-columns:1fr}.seance{grid-template-columns:1fr}.frames iframe{height:560px}.audit-head{flex-direction:column}.audit-issue{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -78,6 +85,7 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
             <div class="field full"><label>URL перевірки з'єднання (необов'язково)</label><input id="newProbe" placeholder="https://operator.example/gateway-check"></div>
             <div class="field full"><label>URL вітрини (необов'язково)</label><input id="newStorefront" placeholder="https://operator.example/"></div>
             <div class="field full"><label>Шаблон URL залу для перевірки (необов'язково)</label><input id="newHall" placeholder="https://operator.example/hall?seance={seance}"></div>
+            <div class="field full"><label>Шаблон URL STATE для автоматичної звірки (необов'язково)</label><input id="newState" placeholder="https://operator.example/gateway-state?seance={seance}"></div>
           </div>
           <div class="hint" style="margin-top:8px">URL перевірки має бути browser-safe, без секретів, і сам виконувати серверний запит оператора до Gateway.</div>
           <button id="createBtn" class="btn" style="width:100%;margin-top:12px">Створити і видати ключ</button>
@@ -105,6 +113,26 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
     <div class="frame-card"><div class="frame-title">Філармонія • прямий контур</div><iframe id="phFrame" title="Філармонія"></iframe></div>
     <div class="frame-card"><div id="operatorFrameTitle" class="frame-title">Оператор</div><iframe id="opFrame" title="Оператор"></iframe></div>
   </div>
+  <div id="auditPanel" class="audit">
+    <div class="audit-head">
+      <div class="audit-title"><span id="auditPill" class="audit-pill idle">○ ОЧІКУЄМО STATE</span><div><h3>Автоматична звірка контурів</h3><div id="auditSummary" class="hint">Порівнюємо авторитетний STATE Філармонії з STATE цього ж сеансу через оператора.</div></div></div>
+      <div class="audit-actions"><button id="auditNowBtn" class="btn ghost">Звірити зараз</button></div>
+    </div>
+    <div class="audit-meta">
+      <div class="metric"><span>Філармонія STATE</span><b id="auditPhMs">—</b></div>
+      <div class="metric"><span>Оператор → Gateway STATE</span><b id="auditOpMs">—</b></div>
+      <div class="metric"><span>Розбіжностей</span><b id="auditMismatchCount">—</b></div>
+      <div class="metric"><span>Перевірено</span><b id="auditCheckedAt">—</b></div>
+    </div>
+    <div class="audit-table-wrap">
+      <table class="audit-table">
+        <thead><tr><th>Показник</th><th>Філармонія</th><th id="auditOperatorColumn">Оператор</th><th>Δ</th></tr></thead>
+        <tbody id="auditRows"><tr><td>Очікуємо першу звірку…</td><td>—</td><td>—</td><td>—</td></tr></tbody>
+      </table>
+    </div>
+    <div class="audit-detail"><h4>Конфлікти та розбіжності</h4><div id="auditDetails" class="hint">Ще не перевірено.</div></div>
+    <div class="audit-note">Перша короткочасна розбіжність не вважається аварією: пульт повторює звірку через ~900 мс і лише стійку розбіжність позначає червоним.</div>
+  </div>
 </section>
 
 <div id="globalStatus" class="status">Завантаження…</div>
@@ -118,7 +146,7 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
 "use strict";
 const $=id=>document.getElementById(id);
 const VA_CLIENT_CODE="va-philharmonic-primary";
-let operators=[],selectedCode=sessionStorage.getItem("gateway-control-operator")||"",control=null,busy=false;
+let operators=[],selectedCode=sessionStorage.getItem("gateway-control-operator")||"",control=null,busy=false,verifySeanceId="",auditTimer=0,auditRunning=false;
 
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function fmt(v){if(!v)return"—";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):new Intl.DateTimeFormat("uk-UA",{dateStyle:"short",timeStyle:"medium"}).format(d);}
@@ -177,6 +205,101 @@ function renderSeances(){
 }
 function hallUrl(tpl,id){return String(tpl||"").replaceAll("{seance}",encodeURIComponent(id)).replaceAll("{seance_id}",encodeURIComponent(id));}
 
+function stateUrl(tpl,id){return String(tpl||"").replaceAll("{seance}",encodeURIComponent(id)).replaceAll("{seance_id}",encodeURIComponent(id));}
+function n(v){const x=Number(v);return Number.isFinite(x)?x:null;}
+function normState(v){const s=String(v||"available").toLowerCase();return s==="mine"?"hold":s;}
+function countState(state){
+ const seats=Array.isArray(state?.seats)?state.seats:[];
+ const out={total:seats.length,for_sale:0,not_for_sale:0,available:0,hold:0,reserved:0,sold:0,blocked:0,other:0,priced:0};
+ for(const seat of seats){
+   if(seat?.sale_enabled===true)out.for_sale++;else out.not_for_sale++;
+   if(n(seat?.price)!==null)out.priced++;
+   const st=normState(seat?.state);
+   if(Object.prototype.hasOwnProperty.call(out,st))out[st]++;else out.other++;
+ }
+ return out;
+}
+function diffText(a,b){const av=n(a),bv=n(b);if(av===null||bv===null)return av===bv?"0":"≠";const d=bv-av;return d===0?"0":`${d>0?"+":""}${d}`;}
+function sameNumber(a,b){const av=n(a),bv=n(b);if(av===null||bv===null)return av===bv;return Math.abs(av-bv)<0.005;}
+function compareState(ph,op){
+ const phSeats=Array.isArray(ph?.seats)?ph.seats:[],opSeats=Array.isArray(op?.seats)?op.seats:[];
+ const phMap=new Map(phSeats.map(x=>[String(x?.seat_key||""),x]).filter(x=>x[0]));
+ const opMap=new Map(opSeats.map(x=>[String(x?.seat_key||""),x]).filter(x=>x[0]));
+ const issues=[],affected=new Set();
+ const add=(kind,key,pv,ov)=>{issues.push({kind,key:key||"—",ph:pv,op:ov});if(key)affected.add(key);};
+ const phHall=ph?.hall||{},opHall=op?.hall||{};
+ if(String(phHall.id||"")!==String(opHall.id||""))add("hall_id","",phHall.id||"—",opHall.id||"—");
+ if(!sameNumber(phHall.official_capacity,opHall.official_capacity))add("official_capacity","",phHall.official_capacity??"—",opHall.official_capacity??"—");
+ if(!sameNumber(phHall.geometry_seat_count,opHall.geometry_seat_count))add("geometry_seat_count","",phHall.geometry_seat_count??"—",opHall.geometry_seat_count??"—");
+ const keys=new Set([...phMap.keys(),...opMap.keys()]);
+ for(const key of keys){
+   const a=phMap.get(key),b=opMap.get(key);
+   if(!a){add("missing_ph",key,"немає",normState(b?.state));continue;}
+   if(!b){add("missing_operator",key,normState(a?.state),"немає");continue;}
+   const as=normState(a.state),bs=normState(b.state);
+   if(as!==bs)add("state",key,as,bs);
+   if(Boolean(a.sale_enabled)!==Boolean(b.sale_enabled))add("sale_enabled",key,String(Boolean(a.sale_enabled)),String(Boolean(b.sale_enabled)));
+   if(!sameNumber(a.price,b.price))add("price",key,a.price??"—",b.price??"—");
+ }
+ const pc=countState(ph),oc=countState(op);
+ const rows=[
+   ["Геометрія місць",phHall.geometry_seat_count??pc.total,opHall.geometry_seat_count??oc.total],
+   ["Офіційна місткість",phHall.official_capacity??"—",opHall.official_capacity??"—"],
+   ["Місць у STATE",pc.total,oc.total],
+   ["У продажу (sale=true)",pc.for_sale,oc.for_sale],
+   ["Вільно",pc.available,oc.available],
+   ["Тимчасовий HOLD",pc.hold,oc.hold],
+   ["Бронь (reserved)",pc.reserved,oc.reserved],
+   ["Продано",pc.sold,oc.sold],
+   ["Заблоковано",pc.blocked,oc.blocked],
+   ["Не в продажу (sale=false)",pc.not_for_sale,oc.not_for_sale],
+   ["Місць з ціною",pc.priced,oc.priced],
+   ["Інші стани",pc.other,oc.other]
+ ];
+ return {issues,affected:affected.size,rows};
+}
+function issueLabel(kind){return ({hall_id:"Зал",official_capacity:"Місткість",geometry_seat_count:"Геометрія",missing_ph:"Немає у Філармонії",missing_operator:"Немає у оператора",state:"STATE",sale_enabled:"Продаж",price:"Ціна"})[kind]||kind;}
+function setAuditPill(kind,text){const el=$("auditPill");el.className=`audit-pill ${kind}`;el.textContent=text;}
+function resetAudit(){
+ setAuditPill("idle","○ ОЧІКУЄМО STATE");$("auditSummary").textContent="Порівнюємо авторитетний STATE Філармонії з STATE цього ж сеансу через оператора.";$("auditPhMs").textContent="—";$("auditOpMs").textContent="—";$("auditMismatchCount").textContent="—";$("auditCheckedAt").textContent="—";$("auditRows").innerHTML='<tr><td>Очікуємо першу звірку…</td><td>—</td><td>—</td><td>—</td></tr>';$("auditDetails").className="hint";$("auditDetails").textContent="Ще не перевірено.";
+}
+async function fetchDirectAuditState(id){const t0=performance.now();const data=await rpc("get_public_hall_state",{p_seance_id:id,p_hold_token:null});return{state:data,ms:performance.now()-t0};}
+async function fetchOperatorAuditState(id){
+ const tpl=String(control?.operator?.state_url_template||selectedOperator()?.state_url_template||"").trim();
+ if(!tpl)throw new Error("STATE URL оператора не налаштовано");
+ const url=stateUrl(tpl,id),t0=performance.now(),r=await fetch(url,{cache:"no-store"}),body=await r.json().catch(()=>({})),ms=performance.now()-t0;
+ if(!r.ok||body?.ok===false)throw new Error(body?.error||`operator_state_http_${r.status}`);
+ const state=body?.payload?.seats?body.payload:(body?.seats?body:null);
+ if(!state||!Array.isArray(state.seats))throw new Error("operator_state_payload_invalid");
+ return{state,ms,routeMs:n(body?.duration_ms)};
+}
+async function readAuditPair(id){const [ph,op]=await Promise.all([fetchDirectAuditState(id),fetchOperatorAuditState(id)]);return{ph,op,cmp:compareState(ph.state,op.state)};}
+function renderAudit(result,mode="ok"){
+ const {ph,op,cmp}=result,opName=selectedOperator()?.subject_name||selectedOperator()?.subject_id||"Оператор";
+ $("auditOperatorColumn").textContent=opName;
+ $("auditPhMs").textContent=`${ph.ms.toFixed(1)} ms`;
+ $("auditOpMs").textContent=`${op.ms.toFixed(1)} ms${op.routeMs!==null?` • route ${op.routeMs.toFixed(1)} ms`:""}`;
+ $("auditMismatchCount").textContent=String(cmp.issues.length);
+ $("auditCheckedAt").textContent=new Intl.DateTimeFormat("uk-UA",{hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(new Date());
+ $("auditRows").innerHTML=cmp.rows.map(([label,a,b])=>{const d=diffText(a,b),ok=d==="0";return `<tr><td>${esc(label)}</td><td>${esc(a)}</td><td>${esc(b)}</td><td class="${ok?"delta-ok":"delta-bad"}">${esc(d)}</td></tr>`;}).join("");
+ if(!cmp.issues.length){$("auditDetails").className="audit-empty";$("auditDetails").textContent="Розбіжностей не виявлено. Ключі місць, STATE, sale_enabled і ціни збігаються.";}else{$("auditDetails").className="audit-issues";const shown=cmp.issues.slice(0,60);$("auditDetails").innerHTML=shown.map(x=>`<div class="audit-issue"><div class="seat">${esc(x.key)} • ${esc(issueLabel(x.kind))}</div><div>Філармонія: <b>${esc(x.ph)}</b></div><div>${esc(opName)}: <b>${esc(x.op)}</b></div></div>`).join("")+(cmp.issues.length>shown.length?`<div class="hint">Ще ${cmp.issues.length-shown.length} розбіжностей не показано.</div>`:"");}
+ if(mode==="wait"){setAuditPill("wait","◐ ОЧІКУЄМО СИНХРОНІЗАЦІЮ");$("auditSummary").textContent=`Перша звірка дала ${cmp.issues.length} розбіжностей. Повторюємо через ~900 мс, щоб відсіяти транзитний стан.`;}
+ else if(cmp.issues.length){setAuditPill("bad",`● РОЗБІЖНІСТЬ • ${cmp.affected} місць`);$("auditSummary").textContent=`Стійких розбіжностей: ${cmp.issues.length}; зачеплено місць: ${cmp.affected}.`}
+ else{setAuditPill("ok","● СИНХРОНІЗОВАНО");$("auditSummary").textContent=`Один seance_id • ${cmp.rows[2]?.[1]??"—"}/${cmp.rows[2]?.[2]??"—"} місць • розбіжностей 0.`;}
+}
+async function auditNow(){
+ if(auditRunning||!verifySeanceId||!$("verifySection").classList.contains("show"))return;
+ auditRunning=true;$("auditNowBtn").disabled=true;
+ try{
+   const first=await readAuditPair(verifySeanceId);
+   if(first.cmp.issues.length){renderAudit(first,"wait");await sleep(900);if(!verifySeanceId)return;const second=await readAuditPair(verifySeanceId);renderAudit(second,second.cmp.issues.length?"bad":"ok");}
+   else renderAudit(first,"ok");
+ }catch(e){setAuditPill("bad","● STATE НЕДОСТУПНИЙ");$("auditSummary").textContent=`Не вдалося виконати звірку: ${e.message}`;$("auditMismatchCount").textContent="—";$("auditCheckedAt").textContent=new Intl.DateTimeFormat("uk-UA",{hour:"2-digit",minute:"2-digit",second:"2-digit"}).format(new Date());$("auditDetails").className="hint";$("auditDetails").textContent=e.message;}
+ finally{auditRunning=false;$("auditNowBtn").disabled=false;}
+}
+function startAudit(id){clearInterval(auditTimer);verifySeanceId=id;resetAudit();auditNow();auditTimer=setInterval(auditNow,2500);}
+function stopAudit(){clearInterval(auditTimer);auditTimer=0;verifySeanceId="";auditRunning=false;resetAudit();}
+
 async function probeSelected(){
  const op=selectedOperator();if(!op?.is_active)return;const message=$("opMessage"),probe=String(op.probe_url||"").trim();
  if(!probe){message.className="status";message.textContent="URL перевірки не заданий. Сервер оператора має сам виконати запит до Gateway; після цього натисніть «Оновити».";return;}
@@ -185,17 +308,17 @@ async function probeSelected(){
 }
 async function toggleOperator(){const op=selectedOperator();if(!op||busy)return;busy=true;try{await rpc("set_gateway_operator_active",{p_client_code:op.client_code,p_is_active:!op.is_active});await loadOperators(true);if(operatorIsConnected())await loadControl();else{control=null;renderSeancesGate();}setStatus(`Оператор ${op.subject_name||op.subject_id}: ${!op.is_active?"увімкнено":"вимкнено"}.`,"ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}finally{busy=false;}}
 async function rotateSecret(){const op=selectedOperator();if(!op||busy)return;if(!confirm("Старий ключ перестане працювати одразу. Оновити ключ?"))return;busy=true;try{const data=await rpc("rotate_gateway_operator_secret",{p_client_code:op.client_code});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");$("createForm").classList.add("show");setStatus("Новий ключ створено. Передайте його серверу оператора зараз.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}finally{busy=false;}}
-async function configureEndpoints(){const op=selectedOperator();if(!op)return;const probe=prompt("URL перевірки з'єднання:",op.probe_url||"");if(probe===null)return;const storefront=prompt("URL вітрини:",op.storefront_url||"");if(storefront===null)return;const hall=prompt("Шаблон URL залу ({seance}):",op.hall_url_template||"");if(hall===null)return;try{await rpc("set_gateway_operator_endpoints",{p_client_code:op.client_code,p_probe_url:probe,p_storefront_url:storefront,p_hall_url_template:hall});await loadOperators(true);await loadControl();setStatus("URL оператора оновлено.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}}
+async function configureEndpoints(){const op=selectedOperator();if(!op)return;const probe=prompt("URL перевірки з'єднання:",op.probe_url||"");if(probe===null)return;const storefront=prompt("URL вітрини:",op.storefront_url||"");if(storefront===null)return;const hall=prompt("Шаблон URL залу ({seance}):",op.hall_url_template||"");if(hall===null)return;const state=prompt("Шаблон URL STATE ({seance}) для звірки:",op.state_url_template||"");if(state===null)return;try{await rpc("set_gateway_operator_endpoints",{p_client_code:op.client_code,p_probe_url:probe,p_storefront_url:storefront,p_hall_url_template:hall});await rpc("set_gateway_operator_state_endpoint",{p_client_code:op.client_code,p_state_url_template:state});await loadOperators(true);await loadControl();setStatus("URL оператора оновлено.","ok");}catch(e){setStatus(`Помилка: ${e.message}`,"bad");}}
 async function toggleSeance(id,enabled){if(!operatorIsConnected()||busy)return;busy=true;try{await rpc("set_gateway_seance_operator",{p_seance_id:id,p_client_code:selectedCode,p_enabled:!enabled});await loadControl();await loadOperators(true);renderSeancesGate();setStatus(`${id}: ${!enabled?"продаж оператору дозволено":"доступ оператора вимкнено"}.`,"ok");}catch(e){setStatus(`Сеанс: ${e.message}`,"bad");}finally{busy=false;}}
-function openVerify(id){const op=selectedOperator(),tpl=String(control?.operator?.hall_url_template||"").trim();if(!op||!tpl)return;const row=(control?.seances||[]).find(x=>x.id===id);$("verifyTitle").textContent=`Перевірка • ${row?.show||id} • ${id}`;$("operatorFrameTitle").textContent=`${op.subject_name||op.subject_id} • через Gateway`;$("phFrame").src=`../site/pages/hall.html?seance=${encodeURIComponent(id)}`;$("opFrame").src=hallUrl(tpl,id);$("verifySection").classList.add("show");$("verifySection").scrollIntoView({behavior:"smooth",block:"start"});}
-async function createOperator(){if(busy)return;const name=$("newName").value.trim(),subject=$("newSubject").value.trim(),client=$("newClient").value.trim();if(!name||!subject||!client){setStatus("Заповніть назву, системний код і технічний клієнт.","bad");return;}busy=true;$("createBtn").disabled=true;try{const data=await rpc("create_gateway_operator",{p_subject_id:subject,p_subject_name:name,p_client_code:client,p_client_label:$("newLabel").value.trim()||"Основний серверний клієнт"});await rpc("set_gateway_operator_endpoints",{p_client_code:client,p_probe_url:$("newProbe").value.trim()||null,p_storefront_url:$("newStorefront").value.trim()||null,p_hall_url_template:$("newHall").value.trim()||null});await rpc("set_gateway_operator_active",{p_client_code:client,p_is_active:false});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");selectedCode=client;await loadOperators(true);control=null;renderSeancesGate();setStatus("Оператор створений у стані OFF. Передайте ключ серверу, увімкніть оператора і перевірте з'єднання.","ok");}catch(e){setStatus(`Не вдалося створити оператора: ${e.message}`,"bad");}finally{busy=false;$("createBtn").disabled=false;}}
+function openVerify(id){const op=selectedOperator(),tpl=String(control?.operator?.hall_url_template||"").trim();if(!op||!tpl)return;const row=(control?.seances||[]).find(x=>x.id===id);$("verifyTitle").textContent=`Перевірка • ${row?.show||id} • ${id}`;$("operatorFrameTitle").textContent=`${op.subject_name||op.subject_id} • через Gateway`;$("phFrame").src=`../site/pages/hall.html?seance=${encodeURIComponent(id)}`;$("opFrame").src=hallUrl(tpl,id);$("verifySection").classList.add("show");startAudit(id);$("verifySection").scrollIntoView({behavior:"smooth",block:"start"});}
+async function createOperator(){if(busy)return;const name=$("newName").value.trim(),subject=$("newSubject").value.trim(),client=$("newClient").value.trim();if(!name||!subject||!client){setStatus("Заповніть назву, системний код і технічний клієнт.","bad");return;}busy=true;$("createBtn").disabled=true;try{const data=await rpc("create_gateway_operator",{p_subject_id:subject,p_subject_name:name,p_client_code:client,p_client_label:$("newLabel").value.trim()||"Основний серверний клієнт"});await rpc("set_gateway_operator_endpoints",{p_client_code:client,p_probe_url:$("newProbe").value.trim()||null,p_storefront_url:$("newStorefront").value.trim()||null,p_hall_url_template:$("newHall").value.trim()||null});await rpc("set_gateway_operator_state_endpoint",{p_client_code:client,p_state_url_template:$("newState").value.trim()||null});await rpc("set_gateway_operator_active",{p_client_code:client,p_is_active:false});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");selectedCode=client;await loadOperators(true);control=null;renderSeancesGate();setStatus("Оператор створений у стані OFF. Передайте ключ серверу, увімкніть оператора і перевірте з'єднання.","ok");}catch(e){setStatus(`Не вдалося створити оператора: ${e.message}`,"bad");}finally{busy=false;$("createBtn").disabled=false;}}
 
 $("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;renderOperators();renderOperatorPanel();if(operatorIsConnected())try{await loadControl();}catch(e){setStatus(`Сеанси: ${e.message}`,"bad");}});
 $("operatorPanel").addEventListener("click",e=>{const btn=e.target.closest("[data-op-action]");if(!btn)return;const a=btn.dataset.opAction;if(a==="toggle")toggleOperator();if(a==="probe")probeSelected();if(a==="storefront"){const op=selectedOperator();if(op?.storefront_url)window.open(op.storefront_url,"_blank","noopener");}if(a==="endpoints")configureEndpoints();if(a==="rotate")rotateSecret();});
 $("seanceList").addEventListener("click",e=>{const t=e.target.closest("[data-seance-toggle]");if(t){toggleSeance(t.dataset.seanceToggle,t.dataset.enabled==="1");return;}const v=e.target.closest("[data-verify]");if(v)openVerify(v.dataset.verify);});
 ["hallFilter","accessFilter"].forEach(id=>$(id).addEventListener("change",renderSeances));$("searchFilter").addEventListener("input",renderSeances);
 $("refreshAll").addEventListener("click",async()=>{try{await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Стан оновлено.","ok");}catch(e){setStatus(`Оновлення: ${e.message}`,"bad");}});
-$("closeVerify").addEventListener("click",()=>{$("verifySection").classList.remove("show");$("phFrame").src="about:blank";$("opFrame").src="about:blank";});
+$("closeVerify").addEventListener("click",()=>{stopAudit();$("verifySection").classList.remove("show");$("phFrame").src="about:blank";$("opFrame").src="about:blank";});$("auditNowBtn").addEventListener("click",auditNow);
 $("createToggle").addEventListener("click",()=>$("createForm").classList.toggle("show"));$("createBtn").addEventListener("click",createOperator);
 $("copySecret").addEventListener("click",async()=>{const v=$("secretValue").textContent.trim();if(!v)return;await navigator.clipboard.writeText(v);setStatus("Ключ скопійовано.","ok");});
 $("newName").addEventListener("input",()=>{const s=slug($("newName").value);if(!$("newSubject").dataset.manual)$("newSubject").value=s;if(!$("newClient").dataset.manual)$("newClient").value=s?`${s}-primary`:"";});
