@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>VA • Gateway Race</title>
+<style>
+:root{
+  --bg:#f4f1ed;
+  --card:#ffffff;
+  --ink:#171717;
+  --muted:#6f6a66;
+  --line:#ded8d2;
+  --burg:#6f0d1b;
+  --burg2:#8b1425;
+  --green:#15803d;
+  --red:#b42318;
+  --amber:#d97706;
+  --blue:#2563eb;
+  --shadow:0 10px 28px rgba(0,0,0,.10);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+body{min-height:100vh;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,select{font:inherit}
+.app{max-width:760px;margin:0 auto;padding:10px}
+.top{
+  background:linear-gradient(135deg,var(--burg),#3e0710);
+  color:#fff;border-radius:16px;padding:14px 15px;box-shadow:var(--shadow)
+}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{
+  width:38px;height:38px;border:1px solid rgba(255,255,255,.55);border-radius:10px;
+  display:grid;place-items:center;font-weight:900;font-size:14px;background:rgba(255,255,255,.08)
+}
+.brand h1{font-size:16px;margin:0;line-height:1.15}
+.brand p{font-size:11px;margin:4px 0 0;color:#ead6da}
+.role{
+  margin-top:11px;padding:10px 12px;border-radius:11px;background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.18)
+}
+.role b{display:block;font-size:14px}
+.role span{display:block;font-size:10px;margin-top:3px;color:#ead6da}
+.card{
+  margin-top:10px;background:var(--card);border:1px solid var(--line);border-radius:15px;padding:12px;box-shadow:0 4px 14px rgba(0,0,0,.04)
+}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+label{display:block;color:var(--muted);font-size:10px;margin:0 0 4px 2px}
+select{
+  width:100%;border:1px solid #cfc7c0;border-radius:10px;padding:10px 11px;background:#fff;color:#222;
+  min-height:42px
+}
+.statusline{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid #eee8e2;
+  font-size:11px
+}
+.statusline .route{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pill{padding:5px 8px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap;background:#eee;color:#555}
+.pill.ok{background:#dcfce7;color:#166534}
+.pill.bad{background:#fee2e2;color:#991b1b}
+
+.hall-card{padding:0;overflow:hidden}
+.hall-head{
+  display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);
+  background:#fff
+}
+.hall-head b{font-size:13px}
+.counts{font-size:10px;color:var(--muted)}
+.hall-viewport{
+  position:relative;height:min(58vh,520px);min-height:390px;background:#eee9e4;overflow:hidden;touch-action:none
+}
+.scene{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.decor{position:absolute;display:flex;align-items:center;justify-content:center;text-align:center;pointer-events:none;overflow:hidden}
+.decor.text{background:transparent!important}
+.seat{
+  position:absolute;border:1px solid #777;border-radius:50%;padding:0;cursor:pointer;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.18)
+}
+.seat.available{background:#fff}
+.seat.sold{background:#666;border-color:#555}
+.seat.blocked{background:#111;border-color:#111}
+.seat.hold{background:#f59e0b;border-color:#b45309}
+.seat.mine{background:#16a34a;border-color:#166534}
+.seat.selected{
+  outline:4px solid #2563eb;outline-offset:2px;z-index:90!important
+}
+.zoom{
+  position:absolute;right:9px;top:9px;display:flex;flex-direction:column;gap:6px;z-index:100
+}
+.zoom button{
+  width:38px;height:38px;border:1px solid #cfc7c0;background:rgba(255,255,255,.94);border-radius:10px;
+  font-size:20px;font-weight:700;box-shadow:0 2px 7px rgba(0,0,0,.12)
+}
+.fitbtn{font-size:11px!important}
+.legend{
+  position:absolute;left:8px;bottom:8px;z-index:100;background:rgba(255,255,255,.94);border:1px solid #d8d0c9;border-radius:9px;
+  padding:6px 7px;display:flex;gap:7px;flex-wrap:wrap;max-width:calc(100% - 16px);font-size:9px;color:#554f4a
+}
+.legend span{display:flex;align-items:center;gap:3px}
+.dot{width:9px;height:9px;border-radius:50%;border:1px solid #777;background:#fff}
+.dot.hold{background:#f59e0b}.dot.mine{background:#16a34a}.dot.sold{background:#666}.dot.blocked{background:#111}
+
+.action-card{position:sticky;bottom:6px;z-index:300}
+.selected-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:9px}
+.info{background:#f8f6f3;border:1px solid #e4ddd6;border-radius:10px;padding:8px}
+.info span{display:block;color:var(--muted);font-size:9px}
+.info b{display:block;font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.bigbtn{
+  width:100%;border:0;border-radius:12px;padding:14px 12px;font-size:15px;font-weight:900;letter-spacing:.02em;
+  background:var(--burg);color:#fff;box-shadow:0 5px 14px rgba(111,13,27,.22)
+}
+.bigbtn:disabled{background:#b9b2ac;color:#eee;box-shadow:none}
+.secondary{
+  width:100%;margin-top:7px;border:1px solid #cfc7c0;border-radius:11px;padding:10px;background:#fff;color:#443e39;font-weight:700
+}
+.result{
+  margin-top:9px;border-radius:11px;padding:10px 11px;background:#f5f3f1;border:1px solid #e3ddd7;display:none
+}
+.result.show{display:block}
+.result.ok{background:#ecfdf3;border-color:#86efac;color:#166534}
+.result.bad{background:#fff1f2;border-color:#fda4af;color:#9f1239}
+.result b{display:block;font-size:15px}
+.result span{display:block;font-size:10px;margin-top:3px}
+.wait{display:grid;place-items:center;height:100%;color:#777;font-size:12px}
+
+@media(max-width:520px){
+  .app{padding:7px}
+  .top,.card{border-radius:13px}
+  .row{grid-template-columns:1fr}
+  .hall-viewport{height:55vh;min-height:360px}
+  .selected-grid{grid-template-columns:1fr 1fr}
+  .selected-grid .info:last-child{grid-column:1 / -1}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">VA</div>
+      <div>
+        <h1>Дніпровська філармонія • Gateway Race</h1>
+        <p>Один зал • один сеанс • два незалежні маршрути</p>
+      </div>
+    </div>
+    <div class="role">
+      <b id="roleTitle">—</b>
+      <span id="roleRoute">—</span>
+    </div>
+  </header>
+
+  <section class="card">
+    <div class="row">
+      <div>
+        <label>Зал</label>
+        <select id="hallSelect"><option>Завантаження…</option></select>
+      </div>
+      <div>
+        <label>Сеанс</label>
+        <select id="seanceSelect"><option>Завантаження…</option></select>
+      </div>
+    </div>
+    <div class="statusline">
+      <span id="routeStatus" class="route">Підключення…</span>
+      <span id="routePill" class="pill">WAIT</span>
+    </div>
+  </section>
+
+  <section class="card hall-card">
+    <div class="hall-head">
+      <b id="hallTitle">Схема залу</b>
+      <span id="counts" class="counts">—</span>
+    </div>
+    <div id="viewport" class="hall-viewport">
+      <div id="scene" class="scene"><div class="wait">Оберіть сеанс</div></div>
+      <div class="zoom">
+        <button id="zoomIn" type="button">+</button>
+        <button id="zoomOut" type="button">−</button>
+        <button id="fitBtn" class="fitbtn" type="button">FIT</button>
+      </div>
+      <div class="legend">
+        <span><i class="dot"></i>вільно</span>
+        <span><i class="dot hold"></i>HOLD іншого</span>
+        <span><i class="dot mine"></i>мій HOLD</span>
+        <span><i class="dot sold"></i>sold</span>
+        <span><i class="dot blocked"></i>blocked</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="card action-card">
+    <div class="selected-grid">
+      <div class="info"><span>Вибране місце</span><b id="selectedSeat">—</b></div>
+      <div class="info"><span>Стан</span><b id="selectedState">—</b></div>
+      <div class="info"><span>Ціна</span><b id="selectedPrice">—</b></div>
+    </div>
+    <button id="holdBtn" class="bigbtn" type="button" disabled>УТРИМУВАТИ МІСЦЕ</button>
+    <button id="releaseBtn" class="secondary" type="button" disabled>ЗВІЛЬНИТИ МІЙ HOLD</button>
+    <div id="result" class="result">
+      <b id="resultTitle">—</b>
+      <span id="resultDetail">—</span>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../shared/app-config.js"></script>
+<script src="../shared/supabase-client.js"></script>
+<script>
+(() => {
+"use strict";
+
+const VA_CLIENT_URL =
+  "https://fhusjlkneckbvnrdhbil.supabase.co/functions/v1/philharmonic-gateway-client";
+const db = window.PH_SUPABASE;
+const VENUE_ID = window.PhAuth?.config?.VENUE_ID || "filarmoniya";
+const $ = id => document.getElementById(id);
+
+const params = new URLSearchParams(location.search);
+const roleParam = String(params.get("role") || "va").toLowerCase();
+const ROLE = ["ph","philharmonic","f","venue"].includes(roleParam) ? "ph" : "va";
+const PRESELECT_SEANCE = String(params.get("seance") || "").trim();
+
+let halls = [];
+let seances = [];
+let selectedSeance = "";
+let geometry = null;
+let statePayload = null;
+let selectedSeat = "";
+let ownHoldRef = "";
+let busy = false;
+let pollTimer = null;
+
+let baseScale = 1;
+let scale = 1;
+let tx = 0;
+let ty = 0;
+let activePointers = new Map();
+let lastPinchDistance = 0;
+let lastPinchScale = 1;
+let dragStart = null;
+
+function esc(s){
+  return String(s ?? "").replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+function fmtMs(v){
+  const n=Number(v);
+  return Number.isFinite(n) ? n.toFixed(1) : "—";
+}
+function setRoleUi(){
+  if(ROLE==="ph"){
+    $("roleTitle").textContent="ФІЛАРМОНІЯ • ПРЯМИЙ КОНТУР";
+    $("roleRoute").textContent="Телефон → авторитетний стан Філармонії";
+    $("holdBtn").textContent="УТРИМУВАТИ МІСЦЕ • ФІЛАРМОНІЯ";
+    document.documentElement.style.setProperty("--burg","#6f0d1b");
+  }else{
+    $("roleTitle").textContent="ВАШ АДМІН • ЧЕРЕЗ GATEWAY";
+    $("roleRoute").textContent="Телефон → VA server → Universal Gateway → Філармонія";
+    $("holdBtn").textContent="УТРИМУВАТИ МІСЦЕ • VA";
+    document.documentElement.style.setProperty("--burg","#5b163f");
+  }
+}
+function setRoute(text, ok=null){
+  $("routeStatus").textContent=text;
+  $("routePill").textContent=ok===true?"ONLINE":ok===false?"ERROR":"WAIT";
+  $("routePill").className=`pill${ok===true?" ok":ok===false?" bad":""}`;
+}
+function showResult(ok,title,detail){
+  $("result").className=`result show ${ok?"ok":"bad"}`;
+  $("resultTitle").textContent=title;
+  $("resultDetail").textContent=detail;
+}
+function clearResult(){
+  $("result").className="result";
+}
+function seatKey(row){ return String(row?.seat_key || row?.key || ""); }
+function counts(payload){
+  const c={available:0,hold:0,mine:0,sold:0,blocked:0};
+  (Array.isArray(payload?.seats)?payload.seats:[]).forEach(r=>{
+    const s=String(r?.state||"available");
+    if(c[s]!==undefined)c[s]++;
+  });
+  return c;
+}
+function selectedRow(){
+  if(!selectedSeat || !statePayload)return null;
+  return (statePayload.seats||[]).find(r=>seatKey(r)===selectedSeat) || null;
+}
+function updateSelected(){
+  const row=selectedRow();
+  $("selectedSeat").textContent=selectedSeat||"—";
+  $("selectedState").textContent=row ? String(row.state||"available") : "—";
+  $("selectedPrice").textContent=row && Number.isFinite(Number(row.price))
+    ? `${Number(row.price).toFixed(2)} грн`
+    : "—";
+  const canHold=Boolean(selectedSeat && row && String(row.state)==="available" && !ownHoldRef && !busy);
+  $("holdBtn").disabled=!canHold;
+  $("releaseBtn").disabled=!ownHoldRef || busy;
+}
+function geometrySeats(){ return Array.isArray(geometry?.seats)?geometry.seats:[]; }
+function geometryDecor(){ return Array.isArray(geometry?.decor)?geometry.decor:[]; }
+
+function applyTransform(){
+  $("scene").style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
+}
+function fitScene(){
+  if(!geometry)return;
+  const vp=$("viewport");
+  const w=Number(geometry.width||1200), h=Number(geometry.height||900);
+  const pad=16;
+  baseScale=Math.min((vp.clientWidth-pad*2)/w,(vp.clientHeight-pad*2)/h);
+  scale=baseScale;
+  tx=(vp.clientWidth-w*scale)/2;
+  ty=(vp.clientHeight-h*scale)/2;
+  applyTransform();
+}
+function zoomAt(factor,cx,cy){
+  if(!geometry)return;
+  const min=baseScale*.85, max=Math.max(baseScale*5,1.3);
+  const next=Math.max(min,Math.min(max,scale*factor));
+  const worldX=(cx-tx)/scale;
+  const worldY=(cy-ty)/scale;
+  tx=cx-worldX*next;
+  ty=cy-worldY*next;
+  scale=next;
+  applyTransform();
+}
+
+function renderHall(){
+  const scene=$("scene");
+  if(!geometry||!statePayload){
+    scene.innerHTML='<div class="wait">Оберіть сеанс</div>';
+    return;
+  }
+  const width=Number(geometry.width||1200), height=Number(geometry.height||900);
+  scene.style.width=`${width}px`;
+  scene.style.height=`${height}px`;
+
+  const stateMap=new Map((statePayload.seats||[]).map(r=>[seatKey(r),r]));
+  const decor=geometryDecor().map(d=>{
+    const type=String(d.type||"");
+    const cls=type==="text"?"decor text":"decor";
+    return `<div class="${cls}" style="
+      left:${Number(d.x||0)-Number(d.w||0)/2}px;
+      top:${Number(d.y||0)-Number(d.h||0)/2}px;
+      width:${Math.max(1,Number(d.w||0))}px;
+      height:${Math.max(1,Number(d.h||0))}px;
+      transform:rotate(${Number(d.rotate||0)}deg);
+      background:${type==="text"?"transparent":esc(d.fill||"#818991")};
+      color:${esc(d.textColor||d.color||"#fff")};
+      font-size:${Math.max(7,Number(d.size||12))}px;
+      z-index:${Number(d.z||10)}">${esc(d.text||"")}</div>`;
+  }).join("");
+
+  const seats=geometrySeats().map(g=>{
+    const key=String(g.key||g.seat_key||"");
+    const row=stateMap.get(key)||{};
+    const st=String(row.state||"available");
+    const selected=selectedSeat===key;
+    const w=Math.max(10,Number(g.w||15)), h=Math.max(10,Number(g.h||15));
+    return `<button type="button"
+      class="seat ${esc(st)}${selected?" selected":""}"
+      data-seat="${esc(key)}"
+      title="${esc(key)} • ${esc(row.price??"")} грн • ${esc(st)}"
+      style="
+        left:${Number(g.x||0)-w/2}px;
+        top:${Number(g.y||0)-h/2}px;
+        width:${w}px;height:${h}px;
+        transform:rotate(${Number(g.rotate||0)}deg);
+        z-index:60"></button>`;
+  }).join("");
+
+  scene.innerHTML=decor+seats;
+  const c=counts(statePayload);
+  $("counts").textContent=`вільно ${c.available} • HOLD ${c.hold+c.mine} • sold ${c.sold}`;
+  updateSelected();
+}
+
+async function loadGeometry(hallId){
+  const hall=halls.find(h=>String(h.id)===String(hallId));
+  if(!hall?.geometry_file)throw new Error("geometry_file_missing");
+  const res=await fetch(`../data/hall/${encodeURIComponent(hall.geometry_file)}`,{cache:"no-store"});
+  if(!res.ok)throw new Error(`geometry_http_${res.status}`);
+  geometry=await res.json();
+}
+
+async function listPublic(){
+  const {data,error}=await db.rpc("list_public_seances",{p_venue_id:VENUE_ID});
+  if(error)throw error;
+  halls=Array.isArray(data?.halls)?data.halls:[];
+  seances=Array.isArray(data?.seances)?data.seances:[];
+
+  $("hallSelect").innerHTML='<option value="">Усі зали</option>'+halls.map(h=>
+    `<option value="${esc(h.id)}">${esc(h.name)} • ${Number(h.capacity||0)} місць</option>`
+  ).join("");
+
+  renderSeanceSelect();
+
+  if(PRESELECT_SEANCE && seances.some(s=>String(s.id)===PRESELECT_SEANCE)){
+    const s=seances.find(x=>String(x.id)===PRESELECT_SEANCE);
+    $("hallSelect").value=String(s.hall_id||"");
+    renderSeanceSelect();
+    $("seanceSelect").value=PRESELECT_SEANCE;
+    selectedSeance=PRESELECT_SEANCE;
+    await loadCurrent();
+  }
+}
+function renderSeanceSelect(){
+  const hall=$("hallSelect").value;
+  const rows=seances.filter(s=>!hall||String(s.hall_id)===hall);
+  $("seanceSelect").innerHTML='<option value="">Оберіть сеанс…</option>'+rows.map(s=>{
+    const h=halls.find(x=>String(x.id)===String(s.hall_id));
+    return `<option value="${esc(s.id)}">${esc(s.date||"")} ${esc(String(s.time||"").slice(0,5))} • ${esc(s.show||s.id)} • ${esc(h?.name||"")}</option>`;
+  }).join("");
+}
+
+async function vaRequest(action,{params={},body=null}={}){
+  const started=performance.now();
+  let response;
+  if(body){
+    response=await fetch(VA_CLIENT_URL,{
+      method:"POST",
+      cache:"no-store",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({action,...body})
+    });
+  }else{
+    const q=new URLSearchParams({action,_:String(Date.now())});
+    Object.entries(params).forEach(([k,v])=>{
+      if(v!==undefined&&v!==null&&String(v)!=="")q.set(k,String(v));
+    });
+    response=await fetch(`${VA_CLIENT_URL}?${q.toString()}`,{cache:"no-store"});
+  }
+  const data=await response.json().catch(()=>({}));
+  const ms=performance.now()-started;
+  if(!response.ok||data?.ok===false){
+    const e=new Error(data?.error||data?.message||`gateway_http_${response.status}`);
+    e.data=data;e.ms=ms;throw e;
+  }
+  return {...data,client_ms:ms};
+}
+
+async function readState(){
+  if(!selectedSeance)return;
+  if(ROLE==="ph"){
+    const t0=performance.now();
+    const {data,error}=await db.rpc("get_public_hall_state",{
+      p_seance_id:selectedSeance,
+      p_hold_token:ownHoldRef||null
+    });
+    if(error)throw error;
+    statePayload=data||{};
+    setRoute(`Прямий стан Філармонії • ${fmtMs(performance.now()-t0)} ms`,true);
+  }else{
+    const r=await vaRequest("state",{
+      params:{seance_id:selectedSeance,hold_ref:ownHoldRef||""}
+    });
+    if(r.result && r.result!=="succeeded"){
+      throw new Error(r.response_code||r.failure_code||"state_rejected");
+    }
+    statePayload=r.payload||{};
+    setRoute(`VA → Gateway → Філармонія • ${fmtMs(r.duration_ms??r.client_ms)} ms`,true);
+  }
+  renderHall();
+}
+
+async function loadCurrent(){
+  clearResult();
+  selectedSeat="";
+  ownHoldRef="";
+  geometry=null;
+  statePayload=null;
+  updateSelected();
+
+  if(!selectedSeance){
+    $("scene").innerHTML='<div class="wait">Оберіть сеанс</div>';
+    $("counts").textContent="—";
+    return;
+  }
+
+  const s=seances.find(x=>String(x.id)===selectedSeance);
+  if(!s)return;
+
+  $("hallTitle").textContent=`${s.show||"Подія"} • ${String(s.date||"")} ${String(s.time||"").slice(0,5)}`;
+  setRoute("Завантаження реального стану…",null);
+  await loadGeometry(s.hall_id);
+  await readState();
+  requestAnimationFrame(fitScene);
+}
+
+async function holdSelected(){
+  const row=selectedRow();
+  if(!row||String(row.state)!=="available"||!selectedSeat||busy)return;
+  busy=true;updateSelected();clearResult();
+
+  const seat=selectedSeat;
+  const ref=crypto.randomUUID();
+  const t0=performance.now();
+
+  try{
+    if(ROLE==="ph"){
+      const {data,error}=await db.rpc("set_public_hold",{
+        p_seance_id:selectedSeance,
+        p_seat_keys:[seat],
+        p_hold_token:ref
+      });
+      const ms=performance.now()-t0;
+      if(error)throw Object.assign(new Error(error.message||"seat_conflict"),{ms});
+      ownHoldRef=ref;
+      statePayload=data||{};
+      renderHall();
+      showResult(true,"HOLD ПРИЙНЯТО",`${seat} • Філармонія • ${fmtMs(ms)} ms`);
+    }else{
+      const r=await vaRequest("hold",{
+        body:{seance_id:selectedSeance,hold_ref:ref,seat_keys:[seat]}
+      });
+      const ms=Number(r.duration_ms??r.client_ms??(performance.now()-t0));
+      if(String(r.result||"")!=="succeeded"){
+        const code=r.response_code||r.failure_code||"seat_conflict";
+        throw Object.assign(new Error(code),{ms,data:r});
+      }
+      ownHoldRef=ref;
+      await readState();
+      showResult(true,"HOLD ПРИЙНЯТО",`${seat} • VA через Gateway • ${fmtMs(ms)} ms`);
+    }
+  }catch(e){
+    ownHoldRef="";
+    await readState().catch(()=>{});
+    const ms=Number(e?.ms || e?.data?.duration_ms || (performance.now()-t0));
+    const code=String(e?.data?.response_code||e?.data?.failure_code||e?.message||"seat_conflict");
+    showResult(false,
+      code==="seat_conflict" ? "МІСЦЕ ВЖЕ ЗАЙНЯТЕ" : "HOLD ВІДХИЛЕНО",
+      `${seat} • ${code} • ${fmtMs(ms)} ms`
+    );
+  }finally{
+    busy=false;
+    updateSelected();
+  }
+}
+
+async function releaseMine(){
+  if(!ownHoldRef||!selectedSeance||busy)return;
+  busy=true;updateSelected();clearResult();
+  const ref=ownHoldRef;
+  const seat=selectedSeat;
+  const t0=performance.now();
+  try{
+    if(ROLE==="ph"){
+      const {data,error}=await db.rpc("release_public_hold",{
+        p_seance_id:selectedSeance,
+        p_hold_token:ref
+      });
+      if(error)throw error;
+      ownHoldRef="";
+      statePayload=data||{};
+      renderHall();
+      showResult(true,"HOLD ЗВІЛЬНЕНО",`${seat||""} • ${fmtMs(performance.now()-t0)} ms`);
+    }else{
+      const r=await vaRequest("release",{
+        body:{seance_id:selectedSeance,hold_ref:ref}
+      });
+      ownHoldRef="";
+      await readState();
+      showResult(true,"HOLD ЗВІЛЬНЕНО",`${seat||""} • ${fmtMs(r.duration_ms??r.client_ms)} ms`);
+    }
+  }catch(e){
+    showResult(false,"ПОМИЛКА RELEASE",String(e.message||e));
+  }finally{
+    busy=false;updateSelected();
+  }
+}
+
+$("scene").addEventListener("click",e=>{
+  const btn=e.target.closest(".seat");
+  if(!btn)return;
+  if(scale > baseScale*1.15 && activePointers.size) return;
+  const key=String(btn.dataset.seat||"");
+  const row=(statePayload?.seats||[]).find(r=>seatKey(r)===key);
+  if(!row)return;
+
+  const st=String(row.state||"available");
+  if(st!=="available" && st!=="mine"){
+    selectedSeat=key;
+    renderHall();
+    showResult(false,
+      st==="hold" ? "HOLD ІНШОГО КОНТУРУ" : st.toUpperCase(),
+      `${key} • це місце зараз недоступне`
+    );
+    return;
+  }
+
+  selectedSeat=key;
+  clearResult();
+  renderHall();
+});
+
+$("holdBtn").addEventListener("click",holdSelected);
+$("releaseBtn").addEventListener("click",releaseMine);
+
+$("hallSelect").addEventListener("change",()=>{
+  selectedSeance="";
+  renderSeanceSelect();
+  $("scene").innerHTML='<div class="wait">Оберіть сеанс</div>';
+  $("counts").textContent="—";
+  selectedSeat="";ownHoldRef="";clearResult();updateSelected();
+});
+$("seanceSelect").addEventListener("change",async()=>{
+  selectedSeance=String($("seanceSelect").value||"");
+  try{await loadCurrent();}catch(e){setRoute(String(e.message||e),false);}
+});
+
+$("zoomIn").addEventListener("click",()=>zoomAt(1.25,$("viewport").clientWidth/2,$("viewport").clientHeight/2));
+$("zoomOut").addEventListener("click",()=>zoomAt(.8,$("viewport").clientWidth/2,$("viewport").clientHeight/2));
+$("fitBtn").addEventListener("click",fitScene);
+
+const vp=$("viewport");
+vp.addEventListener("pointerdown",e=>{
+  if(e.target.closest(".zoom"))return;
+  vp.setPointerCapture?.(e.pointerId);
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activePointers.size===1){
+    dragStart={x:e.clientX,y:e.clientY,tx,ty};
+  }else if(activePointers.size===2){
+    const p=[...activePointers.values()];
+    lastPinchDistance=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    lastPinchScale=scale;
+    dragStart=null;
+  }
+});
+vp.addEventListener("pointermove",e=>{
+  if(!activePointers.has(e.pointerId))return;
+  activePointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+
+  if(activePointers.size===1 && dragStart){
+    tx=dragStart.tx+(e.clientX-dragStart.x);
+    ty=dragStart.ty+(e.clientY-dragStart.y);
+    applyTransform();
+  }else if(activePointers.size===2){
+    const p=[...activePointers.values()];
+    const dist=Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y);
+    if(lastPinchDistance>0){
+      const rect=vp.getBoundingClientRect();
+      const cx=(p[0].x+p[1].x)/2-rect.left;
+      const cy=(p[0].y+p[1].y)/2-rect.top;
+      const target=lastPinchScale*(dist/lastPinchDistance);
+      const factor=target/scale;
+      zoomAt(factor,cx,cy);
+    }
+  }
+});
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  if(activePointers.size===0){dragStart=null;lastPinchDistance=0;}
+  if(activePointers.size===1){
+    const p=[...activePointers.values()][0];
+    dragStart={x:p.x,y:p.y,tx,ty};
+  }
+}
+vp.addEventListener("pointerup",endPointer);
+vp.addEventListener("pointercancel",endPointer);
+
+window.addEventListener("resize",()=>requestAnimationFrame(fitScene));
+
+async function poll(){
+  if(!selectedSeance||busy)return;
+  try{await readState();}catch(e){setRoute(String(e.message||e),false);}
+}
+
+(async()=>{
+  setRoleUi();
+  try{
+    await listPublic();
+    setRoute(ROLE==="ph" ? "Прямий контур готовий" : "VA/Gateway контур готовий",true);
+    pollTimer=setInterval(poll,1800);
+  }catch(e){
+    setRoute(String(e.message||e),false);
+  }
+})();
+})();
+</script>
+</body>
+</html>
