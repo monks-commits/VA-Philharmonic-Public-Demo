@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Operator B • Gateway Test</title>
+<style>
+  :root{
+    --bg:#f4f8fb;--card:#fff;--line:#d7e3eb;--text:#0b2b3f;--muted:#60798a;
+    --ok:#0a8f55;--bad:#c43c3c;--warn:#b77900;--accent:#1696c9;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+  .head{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+  h1{font-size:24px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:14px}
+  .grid{display:grid;grid-template-columns:1fr 1.2fr;gap:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .card h2{font-size:17px;margin:0 0 12px}
+  label{display:block;font-size:12px;font-weight:700;margin:10px 0 5px}
+  select,input{width:100%;padding:11px 12px;border:1px solid #c8d7e1;border-radius:10px;background:#fff;font:inherit;color:var(--text)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  button{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer}
+  .primary{background:var(--accent);color:white}
+  .good{background:var(--ok);color:white}
+  .danger{background:var(--bad);color:white}
+  .ghost{background:white;border:1px solid #c8d7e1;color:var(--text)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+  .metric{border:1px solid var(--line);border-radius:11px;padding:10px}
+  .metric span{display:block;color:var(--muted);font-size:11px}
+  .metric b{display:block;margin-top:3px;font-size:16px}
+  .status{margin-top:12px;padding:11px 12px;border-radius:10px;background:#edf4f8;color:var(--muted)}
+  .status.ok{background:#e7f7ef;color:#087548}
+  .status.bad{background:#fdecec;color:#a92929}
+  .status.warn{background:#fff4d8;color:#8a5d00}
+  .seatbox{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .seatstate{border:1px solid var(--line);border-radius:12px;padding:12px;background:#fbfdfe}
+  .seatstate .big{font-size:20px;font-weight:900;margin:2px 0 5px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
+  pre{white-space:pre-wrap;word-break:break-word;background:#0f1d27;color:#d8edf7;border-radius:12px;padding:12px;min-height:160px;max-height:360px;overflow:auto;margin:0}
+  .pill{display:inline-block;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:800;background:#e8f6fc;color:#08749d}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="pill">ТЕСТОВИЙ ЗОВНІШНІЙ ОПЕРАТОР</div>
+      <h1>Operator B</h1>
+      <div class="sub">Browser → Operator B adapter → Philharmonic Gateway → Філармонія</div>
+    </div>
+    <button id="refreshAll" class="ghost">Оновити</button>
+  </div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Сеанс і місце</h2>
+      <label for="seance">Дозволений сеанс</label>
+      <select id="seance"><option value="">Завантаження…</option></select>
+
+      <label for="seatKey">Ключ місця</label>
+      <input id="seatKey" value="P1-M1" placeholder="P1-M1">
+
+      <div class="row">
+        <button id="readState" class="primary">Перевірити STATE</button>
+        <button id="holdBtn" class="good">HOLD</button>
+        <button id="releaseBtn" class="danger">RELEASE</button>
+      </div>
+
+      <div class="seatbox">
+        <div class="seatstate">
+          <div class="sub">Поточний STATE</div>
+          <div id="seatState" class="big">—</div>
+          <div id="seatMeta" class="sub">—</div>
+        </div>
+        <div class="seatstate">
+          <div class="sub">hold_ref</div>
+          <div id="holdRef" class="mono">—</div>
+        </div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><span>Місць</span><b id="mSeats">—</b></div>
+        <div class="metric"><span>Вільно</span><b id="mFree">—</b></div>
+        <div class="metric"><span>HOLD</span><b id="mHold">—</b></div>
+        <div class="metric"><span>Продано</span><b id="mSold">—</b></div>
+      </div>
+
+      <div id="status" class="status">Очікуємо STATE.</div>
+    </section>
+
+    <section class="card">
+      <h2>Відповідь Gateway</h2>
+      <pre id="log">—</pre>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+  const API = "https://fhusjlkneckbvnrdhbil.supabase.co/functions/v1/operator-b-gateway-client";
+  const $ = id => document.getElementById(id);
+
+  let state = null;
+  let busy = false;
+  let autoTimer = 0;
+
+  function seanceFromUrl(){
+    return new URLSearchParams(location.search).get("seance") || "";
+  }
+
+  function holdKey(){
+    const s = $("seance").value || "none";
+    return `operator-b-hold-ref:${s}`;
+  }
+
+  function getHoldRef(){
+    let v = localStorage.getItem(holdKey());
+    if (!v) {
+      v = crypto.randomUUID();
+      localStorage.setItem(holdKey(), v);
+    }
+    $("holdRef").textContent = v;
+    return v;
+  }
+
+  function setStatus(text, cls=""){
+    $("status").className = `status ${cls}`;
+    $("status").textContent = text;
+  }
+
+  function showLog(obj){
+    $("log").textContent = JSON.stringify(obj, null, 2);
+  }
+
+  async function getJson(url){
+    const r = await fetch(url, {cache:"no-store"});
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+    return j;
+  }
+
+  async function postJson(body){
+    const r = await fetch(API, {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(body)
+    });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || `HTTP ${r.status}`);
+    return j;
+  }
+
+  async function loadSeances(){
+    const data = await getJson(`${API}?action=seances&_=${Date.now()}`);
+    const rows = Array.isArray(data.seances) ? data.seances : [];
+    const wanted = seanceFromUrl();
+    $("seance").innerHTML = rows.length
+      ? rows.map(s => `<option value="${String(s.id).replaceAll('"','&quot;')}">${s.show || s.id} • ${s.date || ""} ${String(s.time||"").slice(0,5)}</option>`).join("")
+      : `<option value="">Немає дозволених сеансів</option>`;
+    if (wanted && rows.some(s => s.id === wanted)) $("seance").value = wanted;
+    getHoldRef();
+    return rows;
+  }
+
+  function renderState(payload){
+    state = payload || {};
+    const seats = Array.isArray(state.seats) ? state.seats : [];
+    const key = $("seatKey").value.trim();
+    const seat = seats.find(x => x.seat_key === key);
+
+    $("mSeats").textContent = seats.length;
+    $("mFree").textContent = seats.filter(x => x.state === "available" && x.sale_enabled).length;
+    $("mHold").textContent = seats.filter(x => x.state === "hold" || x.state === "mine").length;
+    $("mSold").textContent = seats.filter(x => x.state === "sold").length;
+
+    if (!seat) {
+      $("seatState").textContent = "НЕ ЗНАЙДЕНО";
+      $("seatMeta").textContent = key || "—";
+      return;
+    }
+    $("seatState").textContent = String(seat.state || "—").toUpperCase();
+    $("seatMeta").textContent =
+      `${seat.seat_key} • sale=${seat.sale_enabled ? "true":"false"} • price=${seat.price ?? "—"} • expires=${seat.hold_expires_at || "—"}`;
+  }
+
+  async function readState(silent=false){
+    const seance = $("seance").value;
+    if (!seance) return;
+    const holdRef = getHoldRef();
+    if (!silent) setStatus("Читаємо STATE…");
+    try{
+      const data = await getJson(`${API}?action=state&seance_id=${encodeURIComponent(seance)}&hold_ref=${encodeURIComponent(holdRef)}&_=${Date.now()}`);
+      renderState(data.payload);
+      if (!silent) {
+        showLog(data);
+        setStatus(`STATE: ${data.response_code || data.result || "ok"} • ${data.duration_ms ?? "—"} ms`, "ok");
+      }
+    }catch(e){
+      if (!silent) {
+        showLog({ok:false,error:e.message});
+        setStatus(`STATE: ${e.message}`, "bad");
+      }
+    }
+  }
+
+  async function hold(){
+    if (busy) return;
+    const seance = $("seance").value;
+    const seat = $("seatKey").value.trim();
+    if (!seance || !seat) return;
+    busy = true;
+    setStatus(`HOLD ${seat}…`, "warn");
+    try{
+      const data = await postJson({
+        action:"hold",
+        seance_id:seance,
+        hold_ref:getHoldRef(),
+        seat_keys:[seat]
+      });
+      showLog(data);
+      const ok = String(data.result||"") === "succeeded";
+      setStatus(
+        ok ? `HOLD створено: ${seat}` :
+             `HOLD відхилено: ${data.response_code || data.failure_code || "rejected"}`,
+        ok ? "ok" : "bad"
+      );
+      await readState(true);
+    }catch(e){
+      showLog({ok:false,error:e.message});
+      setStatus(`HOLD: ${e.message}`, "bad");
+    }finally{busy=false}
+  }
+
+  async function release(){
+    if (busy) return;
+    const seance = $("seance").value;
+    if (!seance) return;
+    busy = true;
+    setStatus("RELEASE…", "warn");
+    try{
+      const data = await postJson({
+        action:"release",
+        seance_id:seance,
+        hold_ref:getHoldRef()
+      });
+      showLog(data);
+      setStatus(`RELEASE: ${data.response_code || data.result || "ok"}`, "ok");
+      localStorage.removeItem(holdKey());
+      getHoldRef();
+      await readState(true);
+    }catch(e){
+      showLog({ok:false,error:e.message});
+      setStatus(`RELEASE: ${e.message}`, "bad");
+    }finally{busy=false}
+  }
+
+  async function boot(){
+    try{
+      await loadSeances();
+      await readState();
+      clearInterval(autoTimer);
+      autoTimer = setInterval(()=>readState(true), 1200);
+    }catch(e){
+      showLog({ok:false,error:e.message});
+      setStatus(`Завантаження: ${e.message}`, "bad");
+    }
+  }
+
+  $("refreshAll").onclick = boot;
+  $("readState").onclick = () => readState(false);
+  $("holdBtn").onclick = hold;
+  $("releaseBtn").onclick = release;
+  $("seatKey").addEventListener("input", () => renderState(state));
+  $("seance").addEventListener("change", () => {
+    getHoldRef();
+    readState(false);
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
