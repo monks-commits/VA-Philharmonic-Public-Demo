@@ -122,7 +122,7 @@ h1,h2,h3,p{margin-top:0}.topbar h1{font-size:26px;margin:0}.muted,.identity,.hin
 </section>
 
 <section id="verifySection" class="card verify">
-  <div class="verify-head"><div><h3 id="verifyTitle" style="margin:0">Перевірка сеансу</h3><div class="hint">Один seance_id, один зал Філармонії, два реальні клієнтські контури.</div></div><button id="closeVerify" class="btn ghost">Закрити</button></div>
+  <div class="verify-head"><div><h3 id="verifyTitle" style="margin:0">Перевірка сеансу</h3><div id="verifyHint" class="hint">Один seance_id: прямий контур Філармонії та операторський STATE через Gateway.</div></div><button id="closeVerify" class="btn ghost">Закрити</button></div>
   <div class="frames">
     <div class="frame-card"><div class="frame-title">Філармонія • прямий контур</div><iframe id="phFrame" title="Філармонія"></iframe></div>
     <div class="frame-card"><div id="operatorFrameTitle" class="frame-title">Оператор</div><iframe id="opFrame" title="Оператор"></iframe></div>
@@ -214,8 +214,10 @@ function renderSeances(){
  const filtered=rows.filter(s=>(!hall||s.hall_id===hall)&&(!(access==="on")||s.enabled)&&(!(access==="off")||!s.enabled)&&(!q||[s.show,s.id,s.date,s.hall_name,s.hall_id].join(" ").toLowerCase().includes(q)));
  $("seanceCount").textContent=`Доступ надано: ${rows.filter(x=>x.enabled).length} • у списку: ${rows.length}`;
  if(!filtered.length){$("seanceList").innerHTML='<div class="empty">Сеансів за цим фільтром немає.</div>';return;}
- const tpl=String(control?.operator?.hall_url_template||"").trim();
- $("seanceList").innerHTML=filtered.map(s=>`<div class="seance"><div><div class="seance-title">${esc(s.show||s.id)}</div><div class="seance-sub">${esc(s.date||"")} ${esc(String(s.time||"").slice(0,5))} • ${esc(s.hall_name||s.hall_id||"")}</div><div class="code">${esc(s.id)}</div></div><div><span class="badge ${s.enabled?"on":"off"}">${s.enabled?"● ПРОДАЖ ON":"○ OFF"}</span></div><div class="permline">READ ${s.can_read_state?"✓":"—"} • HOLD ${s.can_hold?"✓":"—"} • SALE ${s.can_sell?"✓":"—"}</div><div class="actions row-actions"><button class="btn ${s.enabled?"danger":"good"}" data-seance-toggle="${esc(s.id)}" data-enabled="${s.enabled?"1":"0"}">${s.enabled?"Відключити":"Дозволити продаж"}</button><button class="btn ghost" data-verify="${esc(s.id)}" ${!s.enabled||!tpl?"disabled":""}>Перевірити</button></div></div>`).join("");
+ const hallTpl=String(control?.operator?.hall_url_template||"").trim();
+ const stateTpl=String(control?.operator?.state_url_template||selectedOperator()?.state_url_template||"").trim();
+ const canVerify=Boolean(hallTpl||stateTpl);
+ $("seanceList").innerHTML=filtered.map(s=>`<div class="seance"><div><div class="seance-title">${esc(s.show||s.id)}</div><div class="seance-sub">${esc(s.date||"")} ${esc(String(s.time||"").slice(0,5))} • ${esc(s.hall_name||s.hall_id||"")}</div><div class="code">${esc(s.id)}</div></div><div><span class="badge ${s.enabled?"on":"off"}">${s.enabled?"● ПРОДАЖ ON":"○ OFF"}</span></div><div class="permline">READ ${s.can_read_state?"✓":"—"} • HOLD ${s.can_hold?"✓":"—"} • SALE ${s.can_sell?"✓":"—"}</div><div class="actions row-actions"><button class="btn ${s.enabled?"danger":"good"}" data-seance-toggle="${esc(s.id)}" data-enabled="${s.enabled?"1":"0"}">${s.enabled?"Відключити":"Дозволити продаж"}</button><button class="btn ghost" data-verify="${esc(s.id)}" ${!s.enabled||!canVerify?"disabled":""}>Перевірити</button></div></div>`).join("");
 }
 function hallUrl(tpl,id){return String(tpl||"").replaceAll("{seance}",encodeURIComponent(id)).replaceAll("{seance_id}",encodeURIComponent(id));}
 
@@ -353,7 +355,30 @@ async function saveEndpoints(){
 }
 function cancelEndpoints(){$("endpointEditor").classList.remove("show");}
 async function toggleSeance(id,enabled){if(!operatorIsConnected()||busy)return;busy=true;try{await rpc("set_gateway_seance_operator",{p_seance_id:id,p_client_code:selectedCode,p_enabled:!enabled});await loadControl();await loadOperators(true);renderSeancesGate();setStatus(`${id}: ${!enabled?"продаж оператору дозволено":"доступ оператора вимкнено"}.`,"ok");}catch(e){setStatus(`Сеанс: ${e.message}`,"bad");}finally{busy=false;}}
-function openVerify(id){const op=selectedOperator(),tpl=String(control?.operator?.hall_url_template||"").trim();if(!op||!tpl)return;const row=(control?.seances||[]).find(x=>x.id===id);$("verifyTitle").textContent=`Перевірка • ${row?.show||id} • ${id}`;$("operatorFrameTitle").textContent=`${op.subject_name||op.subject_id} • через Gateway`;$("phFrame").src=`../site/pages/hall.html?seance=${encodeURIComponent(id)}`;$("opFrame").src=hallUrl(tpl,id);$("verifySection").classList.add("show");startAudit(id);$("verifySection").scrollIntoView({behavior:"smooth",block:"start"});}
+function openVerify(id){
+ const op=selectedOperator();
+ if(!op)return;
+ const hallTpl=String(control?.operator?.hall_url_template||op.hall_url_template||"").trim();
+ const stateTpl=String(control?.operator?.state_url_template||op.state_url_template||"").trim();
+ if(!hallTpl&&!stateTpl)return;
+ const row=(control?.seances||[]).find(x=>x.id===id);
+ $("verifyTitle").textContent=`Перевірка • ${row?.show||id} • ${id}`;
+ $("operatorFrameTitle").textContent=`${op.subject_name||op.subject_id} • через Gateway`;
+ $("phFrame").src=`../site/pages/hall.html?seance=${encodeURIComponent(id)}`;
+ const opFrame=$("opFrame");
+ opFrame.removeAttribute("srcdoc");
+ if(hallTpl){
+   opFrame.src=hallUrl(hallTpl,id);
+   $("verifyHint").textContent="Один seance_id, один зал Філармонії, два клієнтські контури; нижче — автоматична звірка STATE.";
+ }else{
+   opFrame.src="about:blank";
+   opFrame.srcdoc=`<!doctype html><html lang="uk"><head><meta charset="utf-8"><style>html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f8fbfd;color:#173042}body{display:grid;place-items:center}.box{max-width:560px;margin:24px;padding:28px;border:1px solid #d7e5ed;border-radius:16px;background:#fff;text-align:center}.box b{display:block;font-size:22px;margin-bottom:10px}.box p{margin:0;color:#647987;line-height:1.5}</style></head><body><div class="box"><b>Власний зал оператора не налаштований</b><p>Це не заважає перевірці. Нижче пульт автоматично порівнює авторитетний STATE Філармонії з STATE ${esc(op.subject_name||op.subject_id)} через Gateway.</p></div></body></html>`;
+   $("verifyHint").textContent="Власний URL залу оператора не заданий. Перевірка виконується без нього — через повну автоматичну звірку STATE.";
+ }
+ $("verifySection").classList.add("show");
+ startAudit(id);
+ $("verifySection").scrollIntoView({behavior:"smooth",block:"start"});
+}
 async function createOperator(){if(busy)return;const name=$("newName").value.trim(),subject=$("newSubject").value.trim(),client=$("newClient").value.trim();if(!name||!subject||!client){setStatus("Заповніть назву, системний код і технічний клієнт.","bad");return;}busy=true;$("createBtn").disabled=true;try{const data=await rpc("create_gateway_operator",{p_subject_id:subject,p_subject_name:name,p_client_code:client,p_client_label:$("newLabel").value.trim()||"Основний серверний клієнт"});await rpc("set_gateway_operator_endpoints",{p_client_code:client,p_probe_url:$("newProbe").value.trim()||null,p_storefront_url:$("newStorefront").value.trim()||null,p_hall_url_template:$("newHall").value.trim()||null});await rpc("set_gateway_operator_state_endpoint",{p_client_code:client,p_state_url_template:$("newState").value.trim()||null});await rpc("set_gateway_operator_active",{p_client_code:client,p_is_active:false});$("secretValue").textContent=data?.client_secret||"";$("secretBox").classList.add("show");selectedCode=client;await loadOperators(true);control=null;renderSeancesGate();setStatus("Оператор створений у стані OFF. Передайте ключ серверу, увімкніть оператора і перевірте з'єднання.","ok");}catch(e){setStatus(`Не вдалося створити оператора: ${e.message}`,"bad");}finally{busy=false;$("createBtn").disabled=false;}}
 
 $("operatorList").addEventListener("click",async e=>{const item=e.target.closest("[data-code]");if(!item)return;$("endpointEditor").classList.remove("show");selectedCode=item.dataset.code;sessionStorage.setItem("gateway-control-operator",selectedCode);control=null;renderOperators();renderOperatorPanel();if(operatorIsConnected())try{await loadControl();}catch(e){setStatus(`Сеанси: ${e.message}`,"bad");}});
@@ -362,7 +387,7 @@ $("endpointSave").addEventListener("click",saveEndpoints);$("endpointCancel").ad
 $("seanceList").addEventListener("click",e=>{const t=e.target.closest("[data-seance-toggle]");if(t){toggleSeance(t.dataset.seanceToggle,t.dataset.enabled==="1");return;}const v=e.target.closest("[data-verify]");if(v)openVerify(v.dataset.verify);});
 ["hallFilter","accessFilter"].forEach(id=>$(id).addEventListener("change",renderSeances));$("searchFilter").addEventListener("input",renderSeances);
 $("refreshAll").addEventListener("click",async()=>{try{await loadOperators(true);if(operatorIsConnected())await loadControl();setStatus("Стан оновлено.","ok");}catch(e){setStatus(`Оновлення: ${e.message}`,"bad");}});
-$("closeVerify").addEventListener("click",()=>{stopAudit();$("verifySection").classList.remove("show");$("phFrame").src="about:blank";$("opFrame").src="about:blank";});$("auditNowBtn").addEventListener("click",auditNow);
+$("closeVerify").addEventListener("click",()=>{stopAudit();$("verifySection").classList.remove("show");$("phFrame").src="about:blank";const f=$("opFrame");f.removeAttribute("srcdoc");f.src="about:blank";});$("auditNowBtn").addEventListener("click",auditNow);
 $("createToggle").addEventListener("click",()=>$("createForm").classList.toggle("show"));$("createBtn").addEventListener("click",createOperator);
 $("copySecret").addEventListener("click",async()=>{const v=$("secretValue").textContent.trim();if(!v)return;await navigator.clipboard.writeText(v);setStatus("Ключ скопійовано.","ok");});
 $("newName").addEventListener("input",()=>{const s=slug($("newName").value);if(!$("newSubject").dataset.manual)$("newSubject").value=s;if(!$("newClient").dataset.manual)$("newClient").value=s?`${s}-primary`:"";});
