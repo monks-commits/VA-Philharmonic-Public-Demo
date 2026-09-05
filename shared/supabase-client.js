@@ -49,6 +49,38 @@
     return url.pathname + url.search;
   }
 
+  function authStorageKey() {
+    try {
+      const projectRef = new URL(config.SUPABASE_URL).hostname.split(".")[0];
+      return projectRef ? `sb-${projectRef}-auth-token` : "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function readStoredAuthSession() {
+    const key = authStorageKey();
+    if (!key) return null;
+
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+
+      const saved = JSON.parse(raw);
+
+      if (!saved?.access_token || !saved?.refresh_token) {
+        return null;
+      }
+
+      return {
+        access_token: saved.access_token,
+        refresh_token: saved.refresh_token
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
   async function getSession() {
     const { data, error } = await client.auth.getSession();
 
@@ -56,7 +88,27 @@
       throw error;
     }
 
-    return data.session || null;
+    if (data?.session) {
+      return data.session;
+    }
+
+    // GitHub Pages recovery fallback.
+    // In the Public Demo Supabase Auth writes the valid session into localStorage,
+    // but on a fresh protected page getSession() may return null before restoring it.
+    // Rehydrate only the standard session fields from this project's own auth key.
+    const stored = readStoredAuthSession();
+
+    if (!stored) {
+      return null;
+    }
+
+    const restored = await client.auth.setSession(stored);
+
+    if (restored.error) {
+      throw restored.error;
+    }
+
+    return restored.data?.session || null;
   }
 
   async function requireSession() {
