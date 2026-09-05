@@ -122,12 +122,79 @@
     return session;
   }
 
+  async function authenticatedRpc(functionName, args = {}) {
+    let session;
+
+    try {
+      session = await requireSession();
+    } catch (error) {
+      return {
+        data: null,
+        error: {
+          code: "authentication_required",
+          message: error?.message || "authentication_required"
+        },
+        status: 401
+      };
+    }
+
+    const url =
+      `${config.SUPABASE_URL}/rest/v1/rpc/${encodeURIComponent(functionName)}`;
+
+    let response;
+
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "apikey": config.SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "x-client-info": "philharmonic-platform-web/1.1"
+        },
+        body: JSON.stringify(args || {})
+      });
+    } catch (error) {
+      return {
+        data: null,
+        error: {
+          code: "network_error",
+          message: error?.message || "network_error"
+        },
+        status: 0
+      };
+    }
+
+    const body = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      return {
+        data: null,
+        error: body || {
+          code: String(response.status),
+          message: response.statusText || `HTTP ${response.status}`
+        },
+        status: response.status,
+        statusText: response.statusText
+      };
+    }
+
+    return {
+      data: body,
+      error: null,
+      status: response.status,
+      statusText: response.statusText
+    };
+  }
+
   async function getAccessProfile({ refresh = false } = {}) {
     if (cachedProfile && !refresh) return cachedProfile;
 
     await requireSession();
 
-    const { data, error } = await client.rpc(
+    const { data, error } = await authenticatedRpc(
       "get_my_access_profile",
       {
         p_venue_id: config.VENUE_ID
@@ -176,31 +243,31 @@
   }
 
   async function invoke(functionName, body) {
-    await requireSession();
+    const session = await requireSession();
 
-    const { data, error } = await client.functions.invoke(
-      functionName,
-      { body }
+    const response = await fetch(
+      `${config.SUPABASE_URL}/functions/v1/${encodeURIComponent(functionName)}`,
+      {
+        method: "POST",
+        cache: "no-store",
+        headers: {
+          "apikey": config.SUPABASE_PUBLISHABLE_KEY,
+          "Authorization": `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+          "x-client-info": "philharmonic-platform-web/1.1"
+        },
+        body: JSON.stringify(body ?? {})
+      }
     );
 
-    if (error) {
-      let message = error.message || "function_error";
+    const data = await response.json().catch(() => ({}));
 
-      try {
-        if (error.context && typeof error.context.json === "function") {
-          const details = await error.context.json();
-          message =
-            details?.error ||
-            details?.message ||
-            message;
-        }
-      } catch (_) {
-        // The transport error itself remains useful.
-      }
-
-      const wrapped = new Error(message);
-      wrapped.original = error;
-      throw wrapped;
+    if (!response.ok || data?.ok === false) {
+      throw new Error(
+        data?.error ||
+        data?.message ||
+        `function_http_${response.status}`
+      );
     }
 
     return data;
@@ -210,11 +277,19 @@
     cachedProfile = null;
   }
 
-  window.PH_SUPABASE = client;
+  const browserClient = new Proxy(client, {
+    get(target, prop) {
+      if (prop === "rpc") return authenticatedRpc;
+      const value = target[prop];
+      return typeof value === "function" ? value.bind(target) : value;
+    }
+  });
+
+  window.PH_SUPABASE = browserClient;
 
   window.PhAuth = Object.freeze({
     config,
-    client,
+    client: browserClient,
     getSession,
     requireSession,
     getAccessProfile,
