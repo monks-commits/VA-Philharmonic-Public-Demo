@@ -225,12 +225,15 @@
       const params = new URLSearchParams(location.search);
       const requestedNext = safeNextPath(params.get("next"));
 
-      const profile = await PhAuth.getAccessProfile({ refresh: true });
-
+      // Если пользователь пришёл с защищённой страницы,
+      // после успешного Supabase Auth возвращаем его туда сразу.
+      // Проверку конкретного permission выполняет уже сама целевая страница.
       if (requestedNext) {
         location.replace(requestedNext);
         return;
       }
+
+      const profile = await PhAuth.getAccessProfile({ refresh: true });
 
       const route =
         profile?.default_workspace?.route ||
@@ -261,27 +264,37 @@
       submitBtn.textContent = "Вхід…";
 
       try {
-        const { error } = await PH_SUPABASE.auth.signInWithPassword({
+        const { data, error } = await PH_SUPABASE.auth.signInWithPassword({
           email: emailEl.value.trim(),
           password: passwordEl.value
         });
 
         if (error) throw error;
+        if (!data?.session) throw new Error("auth_session_not_created");
 
         setMessage("Вхід виконано.", "ok");
         await routeAfterLogin();
 
       } catch (error) {
-        await PH_SUPABASE.auth.signOut();
-
         const text = String(error?.message || error);
 
-        setMessage(
-          text === "staff_access_denied"
-            ? "Користувач існує, але доступ співробітника не призначено."
-            : "Не вдалося увійти. Перевірте email і пароль.",
-          "error"
-        );
+        // ВАЖЛИВО:
+        // не робимо signOut() при помилці вже ПІСЛЯ успішного входу.
+        // Раніше будь-яка помилка profile/redirect стирала щойно створену сесію
+        // і виглядала для користувача як "неправильний пароль".
+        if (
+          text.toLowerCase().includes("invalid login credentials") ||
+          text.toLowerCase().includes("email not confirmed")
+        ) {
+          setMessage("Не вдалося увійти. Перевірте email і пароль.", "error");
+        } else if (text === "staff_access_denied") {
+          setMessage(
+            "Користувач існує, але доступ співробітника не призначено.",
+            "error"
+          );
+        } else {
+          setMessage(`Вхід виконано, але наступний крок не завершено: ${text}`, "error");
+        }
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = "Увійти";
