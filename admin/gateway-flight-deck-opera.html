@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck V8 — Дніпровський театр опери та балету</title>
+<title>Gateway Flight Deck V8.1 — Дніпровський театр опери та балету</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -25,7 +25,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 .preflight{display:grid;grid-template-columns:1.25fr .8fr .8fr .9fr;gap:12px;margin-bottom:14px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.step{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.stepno{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#263544;color:#c9d7e6;font-weight:900}.card h2{font-size:17px;margin:0}.hint{color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}.controls{margin-top:12px;display:grid;gap:8px}.field{display:grid;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:700}.field select{width:100%;min-height:42px;border:1px solid #334657;border-radius:9px;background:#0e161e;color:var(--text);padding:8px 10px}.statusline{min-height:18px;color:var(--muted);font-size:12px;line-height:1.4}.statusline.ok{color:var(--green)}.statusline.bad{color:var(--red)}
 .workspace{border:1px solid #314257;background:#0d141c;border-radius:18px;overflow:hidden}
 .workspace-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #293846;background:#111a24}.workspace-head h2{margin:0;font-size:20px}.ready-badge{border:1px solid #3b4b5b;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:850;color:var(--muted)}.ready-badge.on{color:#8ef0b2;border-color:#288f51;background:#153622}
-.panes{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}.pane{border:1px solid #273747;border-radius:13px;background:#111922;overflow:hidden;min-width:0}.pane-head{padding:10px 12px;border-bottom:1px solid #273747;display:flex;justify-content:space-between;align-items:center;gap:8px}.pane-head b{font-size:15px}.pane-meta{font-size:11px;color:var(--muted);text-align:right}.frame-wrap{position:relative;height:650px;background:#0a0f14}.frame-wrap iframe{width:100%;height:100%;border:0;background:#fff}.frame-placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;color:var(--muted);background:#0d141c}.frame-placeholder.hidden{display:none}
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}.pane{border:1px solid #273747;border-radius:13px;background:#111922;overflow:hidden;min-width:0}.pane-head{padding:10px 12px;border-bottom:1px solid #273747;display:flex;justify-content:space-between;align-items:center;gap:8px}.pane-head b{font-size:15px}.pane-meta{font-size:11px;color:var(--muted);text-align:right}.pane-tools{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex-wrap:wrap}.zoom-btn{border:1px solid #34485b;background:#17212c;color:var(--text);border-radius:7px;min-width:30px;height:28px;padding:0 8px;font-weight:850;cursor:pointer}.zoom-btn:hover{background:#213142}.zoom-value{min-width:48px;text-align:center;color:#cfe3f6;font-size:11px;font-weight:850;font-variant-numeric:tabular-nums}.direct-watch{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:7px 10px;border-bottom:1px solid #273747;background:#0d151d;font-size:11px}.watch-label{color:var(--muted);font-weight:800}.watch-chip{border:1px solid #334657;background:#14202b;color:#c6d5e4;border-radius:999px;padding:5px 8px;font-weight:850}.watch-chip.hold{border-color:#b97e20;background:#3b2b12;color:#ffd784}.watch-chip.sold{border-color:#288f51;background:#153622;color:#8ef0b2}.watch-chip.free{border-color:#356f9b;background:#112b3f;color:#a9d7f8}.watch-chip.bad{border-color:#9f3843;background:#35191d;color:#ffc0c4}.frame-wrap{position:relative;height:650px;background:#0a0f14}.frame-wrap iframe{width:100%;height:100%;border:0;background:#fff}.frame-placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;color:var(--muted);background:#0d141c}.frame-placeholder.hidden{display:none}
 .race-panel{display:grid;grid-template-columns:1fr 1fr 280px;gap:10px;padding:0 10px 10px}.lane,.verdict{border:1px solid #293846;border-radius:13px;background:#0b1219;padding:12px}.lane h3,.verdict h3{margin:0 0 10px;font-size:15px}.lane-grid{display:grid;grid-template-columns:92px 1fr;gap:6px;font-size:12px}.lane-grid span{color:var(--muted)}.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}.seat-big{font-size:20px;font-weight:900;color:#fff}.verdict-main{font-size:18px;font-weight:900;line-height:1.25;margin:8px 0}.verdict-sub{font-size:12px;color:var(--muted);line-height:1.5}
 .telemetry{margin-top:14px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.telemetry h2{font-size:18px;margin:0 0 10px}.tablewrap{overflow:auto;max-height:280px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{padding:7px 8px;border-bottom:1px solid #253443;text-align:left}th{color:var(--muted);position:sticky;top:0;background:var(--panel)}
 .message{position:fixed;right:18px;bottom:18px;max-width:460px;border:1px solid #37506a;background:#132131;color:#dcecff;border-radius:12px;padding:10px 13px;display:none;z-index:500}.message.show{display:block}.message.bad{border-color:#74343a;background:#31161a;color:#ffd5d7}
@@ -37,7 +37,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8</span></h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1 • VISUAL</span></h1>
       <div class="subtitle">Дніпровський театр опери та балету • Велика сцена • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -115,7 +115,20 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
       </section>
 
       <section class="pane">
-        <div class="pane-head"><b>Дніпровський театр опери та балету • прямий контур</b><span id="phPaneMeta" class="pane-meta">оберіть сеанс</span></div>
+        <div class="pane-head">
+          <b>Дніпровський театр опери та балету • прямий контур</b>
+          <div class="pane-tools">
+            <span id="phPaneMeta" class="pane-meta">оберіть сеанс</span>
+            <button id="phZoomOut" class="zoom-btn" type="button" title="Зменшити схему">−</button>
+            <button id="phZoomReset" class="zoom-btn zoom-value" type="button" title="Повернути 100%">125%</button>
+            <button id="phZoomIn" class="zoom-btn" type="button" title="Збільшити схему">+</button>
+          </div>
+        </div>
+        <div class="direct-watch">
+          <span class="watch-label">Візуальний контроль:</span>
+          <span id="phWatchSeat" class="watch-chip">місце —</span>
+          <span id="phWatchState" class="watch-chip">стан —</span>
+        </div>
         <div class="frame-wrap">
           <div id="phPlaceholder" class="frame-placeholder">Оберіть зал і сеанс. Тут відкриється реальна схема Оперного театру.</div>
           <iframe id="phFrame" title="Дніпровський театр опери та балету"></iframe>
@@ -197,6 +210,9 @@ let readOk = false;
 let messageTimer = null;
 let race = { ph:null, va:null };
 let telemetry = [];
+let directZoom = 1.25;
+let trackedSeat = "";
+let watchedSeatState = "";
 
 function lamp(id,on,kind="on"){
   const el=$(id);
@@ -302,6 +318,118 @@ function selectedAllowed(){
   return Boolean(selectedSeance&&remoteAllowedSeances.some(s=>String(s?.id||"")===String(selectedSeance)));
 }
 
+function seatStateLabel(state){
+  const s=String(state||"").toLowerCase();
+  if(s==="mine") return "МІЙ HOLD";
+  if(s==="hold"||s==="held") return "HOLD";
+  if(s==="sold"||s==="used") return "ПРОДАНО";
+  if(s==="available") return "ВІЛЬНО";
+  if(s==="reserved") return "РЕЗЕРВ";
+  return s ? s.toUpperCase() : "—";
+}
+
+function watchStateClass(state){
+  const s=String(state||"").toLowerCase();
+  if(s==="mine"||s==="hold"||s==="held") return "hold";
+  if(s==="sold"||s==="used") return "sold";
+  if(s==="available") return "free";
+  if(s==="reserved") return "bad";
+  return "";
+}
+
+function updateActionLamps(ready){
+  const state=String(watchedSeatState||"").toLowerCase();
+  const isHold=state==="mine"||state==="hold"||state==="held";
+  const isSold=state==="sold"||state==="used";
+
+  lamp("lampHold",isHold,isHold?"warn":"on");
+  $("valHold").textContent=isHold
+    ? `${seatStateLabel(state)}${trackedSeat?` • ${trackedSeat}`:""}`
+    : (ready?"очікує HOLD":"очікує");
+
+  lamp("lampSale",isSold);
+  $("valSale").textContent=isSold
+    ? `SOLD${trackedSeat?` • ${trackedSeat}`:""}`
+    : (ready?"очікує SALE":"очікує");
+}
+
+function setWatch(seat,state){
+  if(seat) trackedSeat=String(seat);
+  if(state!==undefined) watchedSeatState=String(state||"").toLowerCase();
+
+  $("phWatchSeat").textContent=trackedSeat?`місце ${trackedSeat}`:"місце —";
+  $("phWatchState").textContent=`стан ${seatStateLabel(watchedSeatState)}`;
+  $("phWatchState").className=`watch-chip${watchStateClass(watchedSeatState)?` ${watchStateClass(watchedSeatState)}`:""}`;
+}
+
+function resetWatch(){
+  trackedSeat="";
+  watchedSeatState="";
+  setWatch("","");
+}
+
+function applyDirectZoom(next){
+  directZoom=Math.max(.70,Math.min(2.00,Number(next)||1));
+  $("phZoomReset").textContent=`${Math.round(directZoom*100)}%`;
+  try{
+    const doc=$("phFrame").contentDocument;
+    if(!doc?.documentElement||!doc?.body)return;
+    doc.documentElement.style.zoom="";
+    doc.body.style.zoom=String(directZoom);
+  }catch(_){}
+}
+
+function scheduleDirectZoom(){
+  [0,100,350,900].forEach(ms=>setTimeout(()=>applyDirectZoom(directZoom),ms));
+}
+
+function directSeatElement(seat){
+  if(!seat)return null;
+  try{
+    const doc=$("phFrame").contentDocument;
+    if(!doc)return null;
+    return Array.from(doc.querySelectorAll(".seat[data-key]")).find(el=>String(el.dataset.key||"")===String(seat))||null;
+  }catch(_){
+    return null;
+  }
+}
+
+function inspectDirectSeat(seat=trackedSeat,focus=false){
+  if(!seat)return;
+  const el=directSeatElement(seat);
+  if(!el)return;
+
+  const state=String(el.dataset.state||"").toLowerCase();
+  setWatch(seat,state);
+
+  try{
+    const doc=$("phFrame").contentDocument;
+    doc?.querySelectorAll?.(".va-flight-watch rect").forEach(rect=>{
+      rect.style.stroke="";
+      rect.style.strokeWidth="";
+      rect.style.filter="";
+    });
+    doc?.querySelectorAll?.(".va-flight-watch").forEach(node=>node.classList.remove("va-flight-watch"));
+    el.classList.add("va-flight-watch");
+    const rect=el.querySelector("rect");
+    if(rect){
+      rect.style.stroke="#e43f5a";
+      rect.style.strokeWidth="5";
+      rect.style.filter="drop-shadow(0 0 5px rgba(228,63,90,.9))";
+    }
+    if(focus) el.scrollIntoView({behavior:"smooth",block:"center",inline:"center"});
+  }catch(_){}
+
+  updateActionLamps(Boolean(selectedSeance&&gatewayOnline&&vaConnected&&readOk&&selectedAllowed()));
+}
+
+function refreshDirectFrame(){
+  try{
+    const btn=$("phFrame").contentDocument?.getElementById("refreshBtn");
+    if(btn) btn.click();
+  }catch(_){}
+}
+
 function updateReady(){
   const phReady=Boolean(selectedSeance);
   const ready=phReady&&gatewayOnline&&vaConnected&&readOk&&selectedAllowed();
@@ -310,8 +438,7 @@ function updateReady(){
   lamp("lampGateway",gatewayOnline); $("valGateway").textContent=gatewayOnline?"ONLINE":"OFF";
   lamp("lampVa",vaConnected); $("valVa").textContent=vaConnected?"CONNECTED":"OFF";
   lamp("lampRead",readOk); $("valRead").textContent=readOk?"підтверджено":"очікує";
-  lamp("lampHold",ready); $("valHold").textContent=ready?"реальні кліки":"очікує";
-  lamp("lampSale",ready); $("valSale").textContent=ready?"штатні ланцюги":"очікує";
+  updateActionLamps(ready);
   lamp("lampReady",ready); $("valReady").textContent=ready?"ГОТОВО":"очікування";
 
   $("gatewayBtn").disabled=!phReady;
@@ -470,16 +597,48 @@ function reportHold(evt){
     code:String(evt.code||"")
   };
   race[clean.source]=clean;
+  if(clean.seat){
+    trackedSeat=clean.seat;
+    setWatch(trackedSeat,watchedSeatState);
+  }
   paintLane(clean);
   addTelemetry(clean);
   requestOppositeRefresh(clean.source, clean.seance);
+  if(clean.source==="va"&&clean.seat){
+    setTimeout(()=>inspectDirectSeat(clean.seat,true),220);
+    setTimeout(()=>inspectDirectSeat(clean.seat,false),1750);
+  }
   evaluateRace();
 }
 
 window.addEventListener("message",event=>{
   if(event.origin!==location.origin)return;
-  if(event.data?.type!=="gateway-flight-deck-hold")return;
-  reportHold(event.data.payload||{});
+  const d=event.data||{};
+
+  if(d.type==="gateway-flight-deck-hold"){
+    reportHold(d.payload||{});
+    return;
+  }
+
+  if(String(d.venue_id||"")!==VENUE_ID||String(d.seance_id||"")!==String(selectedSeance||""))return;
+
+  if(d.type==="va-venue-direct-hold"){
+    const seats=Array.isArray(d.seats)?d.seats.map(String).filter(Boolean):[];
+    if(seats.length){
+      trackedSeat=seats[0];
+      setWatch(trackedSeat,"mine");
+      setTimeout(()=>inspectDirectSeat(trackedSeat,true),30);
+    }else if(trackedSeat){
+      setTimeout(()=>inspectDirectSeat(trackedSeat,false),30);
+    }
+    updateActionLamps(Boolean(selectedSeance&&gatewayOnline&&vaConnected&&readOk&&selectedAllowed()));
+    return;
+  }
+
+  if(d.type==="va-venue-direct-state"){
+    if(trackedSeat) inspectDirectSeat(trackedSeat,false);
+    return;
+  }
 });
 
 function requestOppositeRefresh(source, seance){
@@ -494,9 +653,16 @@ function requestOppositeRefresh(source, seance){
       location.origin
     );
   } catch (_) {}
+
+  if(source==="va") setTimeout(refreshDirectFrame,80);
 }
 
 $("phFrame").addEventListener("load",()=>{
+  scheduleDirectZoom();
+  if(trackedSeat){
+    setTimeout(()=>inspectDirectSeat(trackedSeat,true),250);
+    setTimeout(()=>inspectDirectSeat(trackedSeat,false),1100);
+  }
   try{
     const href=$("phFrame").contentWindow.location.href;
     $("phPaneMeta").textContent=
@@ -522,6 +688,10 @@ $("vaFrame").addEventListener("load",()=>{
   }catch(_){}
 });
 
+$("phZoomOut").addEventListener("click",()=>applyDirectZoom(directZoom-.10));
+$("phZoomIn").addEventListener("click",()=>applyDirectZoom(directZoom+.10));
+$("phZoomReset").addEventListener("click",()=>applyDirectZoom(1));
+
 $("hallSelect").addEventListener("change",()=>{
   selectedSeance="";
   renderSeances();
@@ -531,7 +701,7 @@ $("hallSelect").addEventListener("change",()=>{
   $("vaBtn").textContent="ПІДКЛЮЧИТИ VA";
   setStatus("gatewayStatus","Спочатку оберіть сеанс Оперного театру.");
   setStatus("vaStatus","Gateway має бути ONLINE.");
-  resetRace();updateReady();
+  resetRace();resetWatch();updateReady();
 });
 
 $("seanceSelect").addEventListener("change",()=>{
@@ -549,7 +719,7 @@ $("seanceSelect").addEventListener("change",()=>{
   }else setStatus("phStatus","Оберіть зал і сеанс.");
   setStatus("gatewayStatus",selectedSeance?"Оперний театр готовий. Натисніть GATEWAY ON.":"Спочатку оберіть сеанс Оперного театру.");
   setStatus("vaStatus","Gateway має бути ONLINE.");
-  resetRace();updateReady();
+  resetRace();resetWatch();updateReady();
 });
 
 $("gatewayBtn").addEventListener("click",async()=>{
@@ -579,7 +749,7 @@ $("prepareBtn").addEventListener("click",()=>{
   setStatus("gatewayStatus","Спочатку оберіть сеанс Оперного театру.");
   setStatus("vaStatus","Gateway має бути ONLINE.");
   telemetry=[];$("telemetryBody").innerHTML="";
-  resetRace();updateReady();
+  resetRace();resetWatch();applyDirectZoom(1.25);updateReady();
 });
 
 $("refreshBtn").addEventListener("click",async()=>{
@@ -597,6 +767,8 @@ $("refreshBtn").addEventListener("click",async()=>{
     setStatus("phStatus",`Публічний каталог Оперного театру: ${e.message}`,"bad");
   }
   resetRace();
+  resetWatch();
+  applyDirectZoom(1.25);
   updateReady();
 })().catch(e=>showMessage(String(e.message||e),true));
 
