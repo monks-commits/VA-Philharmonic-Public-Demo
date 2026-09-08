@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck V8.1.1 — Дніпровський театр опери та балету</title>
+<title>Gateway Flight Deck V8.1.2 — Дніпровський театр опери та балету</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -37,7 +37,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1.1 • ZOOM FIX</span></h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1.2 • ZOOM FIX</span></h1>
       <div class="subtitle">Дніпровський театр опери та балету • Велика сцена • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -368,6 +368,8 @@ function resetWatch(){
   setWatch("","");
 }
 
+let directZoomObserver=null;
+
 function applyDirectZoom(next){
   directZoom=Math.max(.70,Math.min(2.00,Number(next)||1));
   const pct=Math.round(directZoom*100);
@@ -375,41 +377,76 @@ function applyDirectZoom(next){
 
   try{
     const doc=$("phFrame").contentDocument;
-    if(!doc?.head)return;
+    const svg=doc?.querySelector?.("#canvas svg");
+    if(!svg)return;
 
-    // Do NOT zoom <body>: venue-hall renders a responsive SVG with width:100%,
-    // so browser zoom is visually neutralized by the reflow.
-    // Persistently change the actual canvas width instead. The child Hall
-    // re-renders its SVG every ~1.5s, therefore the rule lives in <head>
-    // and automatically applies to every newly rendered SVG.
-    let style=doc.getElementById("va-flight-deck-direct-zoom");
-    if(!style){
-      style=doc.createElement("style");
-      style.id="va-flight-deck-direct-zoom";
-      doc.head.appendChild(style);
+    // Real SVG zoom: change the viewBox itself. This cannot be neutralized
+    // by the Hall's responsive width:100% CSS, so the visible scheme really
+    // grows/shrinks inside the same right-hand viewport.
+    let original=String(svg.dataset.flightOriginalViewBox||"").trim();
+    if(!original){
+      original=String(svg.getAttribute("viewBox")||"").trim();
+      if(!original)return;
+      svg.dataset.flightOriginalViewBox=original;
     }
 
-    style.textContent=`
-      #canvas{
-        width:${pct}% !important;
-        min-width:0 !important;
-        margin-left:auto !important;
-        margin-right:auto !important;
+    const nums=original.split(/[ ,]+/).map(Number);
+    if(nums.length!==4||nums.some(n=>!Number.isFinite(n)))return;
+    const [ox,oy,ow,oh]=nums;
+
+    let cx=ox+ow/2;
+    let cy=oy+oh/2;
+
+    // When a seat is being demonstrated, keep the zoom centred on it.
+    if(trackedSeat){
+      const seat=directSeatElement(trackedSeat);
+      const rect=seat?.querySelector?.("rect");
+      if(rect){
+        const x=Number(rect.getAttribute("x"));
+        const y=Number(rect.getAttribute("y"));
+        const w=Number(rect.getAttribute("width"));
+        const h=Number(rect.getAttribute("height"));
+        if([x,y,w,h].every(Number.isFinite)){
+          cx=x+w/2;
+          cy=y+h/2;
+        }
       }
-      #canvas svg{
-        width:100% !important;
-        max-width:none !important;
-        height:auto !important;
-      }
-      .panel{
-        overflow:auto !important;
-      }
-    `;
+    }
+
+    const vw=ow/directZoom;
+    const vh=oh/directZoom;
+    const vx=cx-vw/2;
+    const vy=cy-vh/2;
+
+    svg.setAttribute("viewBox",`${vx} ${vy} ${vw} ${vh}`);
+    svg.setAttribute("preserveAspectRatio","xMidYMid meet");
+    svg.style.width="100%";
+    svg.style.height="auto";
+
+    // Make the zoom visible immediately even if the Hall just re-rendered.
+    if(trackedSeat) setTimeout(()=>inspectDirectSeat(trackedSeat,false),0);
+  }catch(_){}
+}
+
+function installDirectZoomObserver(){
+  try{
+    directZoomObserver?.disconnect?.();
+    directZoomObserver=null;
+    const doc=$("phFrame").contentDocument;
+    const canvas=doc?.getElementById?.("canvas");
+    if(!canvas)return;
+    directZoomObserver=new MutationObserver(()=>{
+      requestAnimationFrame(()=>applyDirectZoom(directZoom));
+    });
+    directZoomObserver.observe(canvas,{childList:true});
   }catch(_){}
 }
 
 function scheduleDirectZoom(){
-  [0,100,350,900].forEach(ms=>setTimeout(()=>applyDirectZoom(directZoom),ms));
+  [0,80,250,700].forEach(ms=>setTimeout(()=>{
+    applyDirectZoom(directZoom);
+    if(ms===250) installDirectZoomObserver();
+  },ms));
 }
 
 function directSeatElement(seat){
