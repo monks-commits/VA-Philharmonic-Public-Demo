@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck V8.1 — Дніпровський театр опери та балету</title>
+<title>Gateway Flight Deck V8.1.1 — Дніпровський театр опери та балету</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -37,7 +37,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1 • VISUAL</span></h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1.1 • ZOOM FIX</span></h1>
       <div class="subtitle">Дніпровський театр опери та балету • Велика сцена • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -370,12 +370,41 @@ function resetWatch(){
 
 function applyDirectZoom(next){
   directZoom=Math.max(.70,Math.min(2.00,Number(next)||1));
-  $("phZoomReset").textContent=`${Math.round(directZoom*100)}%`;
+  const pct=Math.round(directZoom*100);
+  $("phZoomReset").textContent=`${pct}%`;
+
   try{
     const doc=$("phFrame").contentDocument;
-    if(!doc?.documentElement||!doc?.body)return;
-    doc.documentElement.style.zoom="";
-    doc.body.style.zoom=String(directZoom);
+    if(!doc?.head)return;
+
+    // Do NOT zoom <body>: venue-hall renders a responsive SVG with width:100%,
+    // so browser zoom is visually neutralized by the reflow.
+    // Persistently change the actual canvas width instead. The child Hall
+    // re-renders its SVG every ~1.5s, therefore the rule lives in <head>
+    // and automatically applies to every newly rendered SVG.
+    let style=doc.getElementById("va-flight-deck-direct-zoom");
+    if(!style){
+      style=doc.createElement("style");
+      style.id="va-flight-deck-direct-zoom";
+      doc.head.appendChild(style);
+    }
+
+    style.textContent=`
+      #canvas{
+        width:${pct}% !important;
+        min-width:0 !important;
+        margin-left:auto !important;
+        margin-right:auto !important;
+      }
+      #canvas svg{
+        width:100% !important;
+        max-width:none !important;
+        height:auto !important;
+      }
+      .panel{
+        overflow:auto !important;
+      }
+    `;
   }catch(_){}
 }
 
