@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck V8.3 — Дніпровський театр опери та балету</title>
+<title>Gateway Flight Deck V8.4 — Дніпровський театр опери та балету</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -40,8 +40,8 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 .view-controls .btn[aria-pressed="true"],.height-btn[aria-pressed="true"]{background:#1b5a3a;border-color:#329f64;color:#e8fff0}
 .pane-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .pane-expand{font-size:12px;padding:5px 9px;min-height:32px;white-space:nowrap}
-.workspace .frame-wrap{height:clamp(790px,86vh,1110px);overflow:auto;scrollbar-gutter:stable}
-.workspace .frame-wrap iframe{display:block;transform-origin:top left;max-width:none;max-height:none}
+.workspace .frame-wrap{height:clamp(790px,86vh,1110px);overflow:hidden}
+.workspace .frame-wrap iframe{display:block;transform:none!important;width:100%;height:100%;max-width:none;max-height:none}
 .workspace[data-view="va"] .panes,.workspace[data-view="ph"] .panes{grid-template-columns:minmax(0,1fr)}
 .workspace[data-view="va"] #phPane,.workspace[data-view="ph"] #vaPane{display:none}
 .workspace[data-view="va"] .frame-wrap,.workspace[data-view="ph"] .frame-wrap{height:clamp(980px,106vh,1450px)}
@@ -60,7 +60,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.3 • ПОВНИЙ ЕКРАН + РОБОЧИЙ МАСШТАБ</span></h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.4 • СХЕМА БЕЗ ОБРІЗАННЯ</span></h1>
       <div class="subtitle">Дніпровський театр опери та балету • Велика сцена • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -152,7 +152,7 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
             <span id="phPaneMeta" class="pane-meta">оберіть сеанс</span>
             <button id="phExpandBtn" class="btn pane-expand" type="button" aria-pressed="false">⤢ Розгорнути Оперний</button>
             <button id="phZoomOut" class="zoom-btn" type="button" title="Зменшити схему">−</button>
-            <button id="phZoomReset" class="zoom-btn zoom-value" type="button" title="Повернути 100%">100%</button>
+            <button id="phZoomReset" class="zoom-btn zoom-value" type="button" title="Уся схема по ширині">100%</button>
             <button id="phZoomIn" class="zoom-btn" type="button" title="Збільшити схему">+</button>
           </div>
         </div>
@@ -244,8 +244,14 @@ function notifyEmbeddedResize(){
       try{frame.contentWindow?.dispatchEvent(new Event("resize"));}catch(_){/* independent frame */}
     }
   };
-  requestAnimationFrame(()=>requestAnimationFrame(dispatch));
-  setTimeout(dispatch,180);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    dispatch();
+    applyDirectZoom(directZoom);
+  }));
+  setTimeout(()=>{
+    dispatch();
+    applyDirectZoom(directZoom);
+  },180);
 }
 function setWorkspaceView(view){
   const mode=["both","va","ph"].includes(view)?view:"both";
@@ -441,27 +447,48 @@ function resetWatch(){
   setWatch("","");
 }
 
-/*
-  V8.3 viewport zoom. The old implementation only worked when the embedded
-  hall exposed #canvas svg with a stable viewBox. When it did not, the
-  percentage label changed but the hall did not. Browser-side scaling is
-  applied to the SAME iframe; the frame is never reloaded for zoom.
-  The overflow:auto frame-wrap allows panning through the enlarged hall.
-*/
+/* V8.4 Opera-only scheme zoom.
+   The real venue-hall.html exposes .panel > #canvas > svg and rerenders SVG
+   on every state poll. Zoom the PERSISTENT #canvas container rather than
+   scaling the whole iframe (which clipped the auditorium and the controls).
+   No venue data, seat positions, HOLD or SALE logic is touched. */
 function applyDirectZoom(next){
   const n=Number(next);
-  directZoom=Math.max(.70,Math.min(2.00,Number.isFinite(n)?n:1));
-  directZoom=Math.round(directZoom*100)/100;
+  directZoom=Math.round(Math.max(.70,Math.min(2.40,Number.isFinite(n)?n:1))*100)/100;
   $("phZoomReset").textContent=`${Math.round(directZoom*100)}%`;
   const frame=$("phFrame");
-  if(frame){
-    frame.style.transform=directZoom===1?"":`scale(${directZoom})`;
+  // Clean up the broken whole-iframe zoom if this function is called again.
+  frame.style.transform="";
+  frame.style.width="";
+  frame.style.height="";
+  try{
+    const doc=frame.contentDocument;
+    const panel=doc?.querySelector(".panel");
+    const canvas=doc?.getElementById("canvas");
+    if(!panel||!canvas||panel.clientWidth<100)return;
+
+    // The SVG inherits width:100% from #canvas. The venue redraws only
+    // #canvas.innerHTML, so the size survives its 1.5-second state refresh.
+    const available=Math.max(300,panel.clientWidth-22);
+    const oldWidth=canvas.getBoundingClientRect().width||available;
+    const nextWidth=Math.max(220,Math.round(available*directZoom));
+    const relativeX=(panel.scrollLeft+panel.clientWidth/2)/oldWidth;
+    canvas.style.setProperty("min-width","0","important");
+    canvas.style.width=`${nextWidth}px`;
+    canvas.style.maxWidth="none";
+    panel.style.overflowX="auto";
+    panel.style.overscrollBehavior="contain";
+    panel.scrollLeft=Math.max(0,relativeX*nextWidth-panel.clientWidth/2);
+  }catch(e){
+    // Both demo URLs normally share a github.io origin. If that changes,
+    // don't silently claim that the zoom worked.
+    console.warn("Opera canvas zoom unavailable",e);
+    $("phZoomReset").textContent="н/д";
   }
 }
 
 function scheduleDirectZoom(){
-  // Applied to the iframe itself: independent of the inner hall's DOM/layout.
-  requestAnimationFrame(()=>applyDirectZoom(directZoom));
+  requestAnimationFrame(()=>requestAnimationFrame(()=>applyDirectZoom(directZoom)));
 }
 
 function directSeatElement(seat){
@@ -740,6 +767,10 @@ function requestOppositeRefresh(source, seance){
 
 $("phFrame").addEventListener("load",()=>{
   scheduleDirectZoom();
+  try{
+    // Width may change when switching between one and two panes.
+    $("phFrame").contentWindow?.addEventListener("resize",scheduleDirectZoom);
+  }catch(_){}
   if(trackedSeat){
     setTimeout(()=>inspectDirectSeat(trackedSeat,true),250);
     setTimeout(()=>inspectDirectSeat(trackedSeat,false),1100);
