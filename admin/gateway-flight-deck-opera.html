@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck V8.1.2 — Дніпровський театр опери та балету</title>
+<title>Gateway Flight Deck V8.3 — Дніпровський театр опери та балету</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -31,13 +31,36 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 .message{position:fixed;right:18px;bottom:18px;max-width:460px;border:1px solid #37506a;background:#132131;color:#dcecff;border-radius:12px;padding:10px 13px;display:none;z-index:500}.message.show{display:block}.message.bad{border-color:#74343a;background:#31161a;color:#ffd5d7}
 @media(max-width:1250px){.lamps{grid-template-columns:repeat(4,1fr)}.preflight{grid-template-columns:repeat(2,1fr)}.panes{grid-template-columns:1fr}.race-panel{grid-template-columns:1fr 1fr}.verdict{grid-column:1/-1}.frame-wrap{height:620px}}
 @media(max-width:700px){body{padding:8px}.lamps{grid-template-columns:repeat(2,1fr)}.preflight{grid-template-columns:1fr}.pathbar{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.race-panel{grid-template-columns:1fr}.verdict{grid-column:auto}.frame-wrap{height:70vh}.top-actions{width:100%}.top-actions .btn{flex:1}}
+
+/* V8.3: all display changes are local to the Flight Deck. */
+.workspace-head{flex-wrap:wrap}
+.workspace-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px}
+.view-controls{display:flex;flex-wrap:wrap;gap:5px}
+.view-controls .btn,.height-btn{font-size:12px;padding:8px 11px;min-height:37px}
+.view-controls .btn[aria-pressed="true"],.height-btn[aria-pressed="true"]{background:#1b5a3a;border-color:#329f64;color:#e8fff0}
+.pane-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.pane-expand{font-size:12px;padding:5px 9px;min-height:32px;white-space:nowrap}
+.workspace .frame-wrap{height:clamp(790px,86vh,1110px);overflow:auto;scrollbar-gutter:stable}
+.workspace .frame-wrap iframe{display:block;transform-origin:top left;max-width:none;max-height:none}
+.workspace[data-view="va"] .panes,.workspace[data-view="ph"] .panes{grid-template-columns:minmax(0,1fr)}
+.workspace[data-view="va"] #phPane,.workspace[data-view="ph"] #vaPane{display:none}
+.workspace[data-view="va"] .frame-wrap,.workspace[data-view="ph"] .frame-wrap{height:clamp(980px,106vh,1450px)}
+.workspace[data-tall="true"] .frame-wrap{height:clamp(1250px,145vh,1900px)}
+.zoom-hint{font-size:11px;color:var(--muted);white-space:nowrap}
+@media(max-width:700px){
+ .workspace-actions{justify-content:flex-start;width:100%}
+ .view-controls{width:100%}
+ .view-controls .btn{flex:1 1 auto}
+ .workspace-head,.pane-head{align-items:flex-start;flex-wrap:wrap}
+ .pane-tools{width:100%;justify-content:flex-start}
+}
 </style>
 </head>
 <body>
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1.2 • ZOOM FIX</span></h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.3 • ПОВНИЙ ЕКРАН + РОБОЧИЙ МАСШТАБ</span></h1>
       <div class="subtitle">Дніпровський театр опери та балету • Велика сцена • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -99,28 +122,37 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
     </article>
   </section>
 
-  <section class="workspace">
+  <section class="workspace" id="workspace" data-view="both" data-tall="false">
     <div class="workspace-head">
       <div><h2>Реальна перевірка • одне місце, дві платформи</h2><div class="hint">Ліворуч покупець заходить з вітрини VA. Праворуч — безпосередньо з Оперного театру. Flight Deck тільки спостерігає.</div></div>
-      <div id="readyBadge" class="ready-badge">НЕ ГОТОВО</div>
+      <div class="workspace-actions">
+        <div class="view-controls" role="group" aria-label="Режим двох платформ">
+          <button id="viewBothBtn" class="btn" type="button" aria-pressed="true">Два вікна</button>
+          <button id="viewVaBtn" class="btn" type="button" aria-pressed="false">VA на всю ширину</button>
+          <button id="viewPhBtn" class="btn" type="button" aria-pressed="false">Оперний на всю ширину</button>
+        </div>
+        <button id="heightBtn" class="btn height-btn" type="button" aria-pressed="false">Збільшити висоту</button>
+        <div id="readyBadge" class="ready-badge">НЕ ГОТОВО</div>
+      </div>
     </div>
 
     <div class="panes">
-      <section class="pane">
-        <div class="pane-head"><b>Ваш Адмін • через Gateway</b><span id="vaPaneMeta" class="pane-meta">вітрина ще не підключена</span></div>
+      <section class="pane" id="vaPane">
+        <div class="pane-head"><b>Ваш Адмін • через Gateway</b><div class="pane-tools"><span id="vaPaneMeta" class="pane-meta">вітрина ще не підключена</span><button id="vaExpandBtn" class="btn pane-expand" type="button" aria-pressed="false">⤢ Розгорнути VA</button></div></div>
         <div class="frame-wrap">
           <div id="vaPlaceholder" class="frame-placeholder">Після підключення VA тут відкриється реальна загальна вітрина «Ваш Адмін».</div>
           <iframe id="vaFrame" title="Ваш Адмін"></iframe>
         </div>
       </section>
 
-      <section class="pane">
+      <section class="pane" id="phPane">
         <div class="pane-head">
           <b>Дніпровський театр опери та балету • прямий контур</b>
           <div class="pane-tools">
             <span id="phPaneMeta" class="pane-meta">оберіть сеанс</span>
+            <button id="phExpandBtn" class="btn pane-expand" type="button" aria-pressed="false">⤢ Розгорнути Оперний</button>
             <button id="phZoomOut" class="zoom-btn" type="button" title="Зменшити схему">−</button>
-            <button id="phZoomReset" class="zoom-btn zoom-value" type="button" title="Повернути 100%">125%</button>
+            <button id="phZoomReset" class="zoom-btn zoom-value" type="button" title="Повернути 100%">100%</button>
             <button id="phZoomIn" class="zoom-btn" type="button" title="Збільшити схему">+</button>
           </div>
         </div>
@@ -200,6 +232,47 @@ const db = window.PH_SUPABASE;
 const VENUE_ID = "opera";
 const $ = id => document.getElementById(id);
 
+// V8.3 view controls: no navigation/reload, no HOLD/SALE calls.
+let resizeSeq=0;
+function notifyEmbeddedResize(){
+  const seq=++resizeSeq;
+  const dispatch=()=>{
+    if(seq!==resizeSeq)return;
+    for(const id of ["vaFrame","phFrame"]){
+      const frame=$(id);
+      if(!frame||frame.getClientRects().length===0)continue;
+      try{frame.contentWindow?.dispatchEvent(new Event("resize"));}catch(_){/* independent frame */}
+    }
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(dispatch));
+  setTimeout(dispatch,180);
+}
+function setWorkspaceView(view){
+  const mode=["both","va","ph"].includes(view)?view:"both";
+  $("workspace").dataset.view=mode;
+  [["viewBothBtn","both"],["viewVaBtn","va"],["viewPhBtn","ph"]].forEach(([id,v])=>{
+    $(id).setAttribute("aria-pressed",String(mode===v));
+  });
+  $("vaExpandBtn").textContent=mode==="va"?"↩ Два вікна":"⤢ Розгорнути VA";
+  $("phExpandBtn").textContent=mode==="ph"?"↩ Два вікна":"⤢ Розгорнути Оперний";
+  $("vaExpandBtn").setAttribute("aria-pressed",String(mode==="va"));
+  $("phExpandBtn").setAttribute("aria-pressed",String(mode==="ph"));
+  notifyEmbeddedResize();
+}
+function setFrameHeight(tall){
+  $("workspace").dataset.tall=String(Boolean(tall));
+  $("heightBtn").setAttribute("aria-pressed",String(Boolean(tall)));
+  $("heightBtn").textContent=tall?"Звичайна висота":"Збільшити висоту";
+  notifyEmbeddedResize();
+}
+$("viewBothBtn").addEventListener("click",()=>setWorkspaceView("both"));
+$("viewVaBtn").addEventListener("click",()=>setWorkspaceView("va"));
+$("viewPhBtn").addEventListener("click",()=>setWorkspaceView("ph"));
+$("vaExpandBtn").addEventListener("click",()=>setWorkspaceView($("workspace").dataset.view==="va"?"both":"va"));
+$("phExpandBtn").addEventListener("click",()=>setWorkspaceView($("workspace").dataset.view==="ph"?"both":"ph"));
+$("heightBtn").addEventListener("click",()=>setFrameHeight($("workspace").dataset.tall!=="true"));
+
+
 let halls = [];
 let seances = [];
 let selectedSeance = "";
@@ -210,7 +283,7 @@ let readOk = false;
 let messageTimer = null;
 let race = { ph:null, va:null };
 let telemetry = [];
-let directZoom = 1.25;
+let directZoom = 1.00;
 let trackedSeat = "";
 let watchedSeatState = "";
 
@@ -368,85 +441,27 @@ function resetWatch(){
   setWatch("","");
 }
 
-let directZoomObserver=null;
-
+/*
+  V8.3 viewport zoom. The old implementation only worked when the embedded
+  hall exposed #canvas svg with a stable viewBox. When it did not, the
+  percentage label changed but the hall did not. Browser-side scaling is
+  applied to the SAME iframe; the frame is never reloaded for zoom.
+  The overflow:auto frame-wrap allows panning through the enlarged hall.
+*/
 function applyDirectZoom(next){
-  directZoom=Math.max(.70,Math.min(2.00,Number(next)||1));
-  const pct=Math.round(directZoom*100);
-  $("phZoomReset").textContent=`${pct}%`;
-
-  try{
-    const doc=$("phFrame").contentDocument;
-    const svg=doc?.querySelector?.("#canvas svg");
-    if(!svg)return;
-
-    // Real SVG zoom: change the viewBox itself. This cannot be neutralized
-    // by the Hall's responsive width:100% CSS, so the visible scheme really
-    // grows/shrinks inside the same right-hand viewport.
-    let original=String(svg.dataset.flightOriginalViewBox||"").trim();
-    if(!original){
-      original=String(svg.getAttribute("viewBox")||"").trim();
-      if(!original)return;
-      svg.dataset.flightOriginalViewBox=original;
-    }
-
-    const nums=original.split(/[ ,]+/).map(Number);
-    if(nums.length!==4||nums.some(n=>!Number.isFinite(n)))return;
-    const [ox,oy,ow,oh]=nums;
-
-    let cx=ox+ow/2;
-    let cy=oy+oh/2;
-
-    // When a seat is being demonstrated, keep the zoom centred on it.
-    if(trackedSeat){
-      const seat=directSeatElement(trackedSeat);
-      const rect=seat?.querySelector?.("rect");
-      if(rect){
-        const x=Number(rect.getAttribute("x"));
-        const y=Number(rect.getAttribute("y"));
-        const w=Number(rect.getAttribute("width"));
-        const h=Number(rect.getAttribute("height"));
-        if([x,y,w,h].every(Number.isFinite)){
-          cx=x+w/2;
-          cy=y+h/2;
-        }
-      }
-    }
-
-    const vw=ow/directZoom;
-    const vh=oh/directZoom;
-    const vx=cx-vw/2;
-    const vy=cy-vh/2;
-
-    svg.setAttribute("viewBox",`${vx} ${vy} ${vw} ${vh}`);
-    svg.setAttribute("preserveAspectRatio","xMidYMid meet");
-    svg.style.width="100%";
-    svg.style.height="auto";
-
-    // Make the zoom visible immediately even if the Hall just re-rendered.
-    if(trackedSeat) setTimeout(()=>inspectDirectSeat(trackedSeat,false),0);
-  }catch(_){}
-}
-
-function installDirectZoomObserver(){
-  try{
-    directZoomObserver?.disconnect?.();
-    directZoomObserver=null;
-    const doc=$("phFrame").contentDocument;
-    const canvas=doc?.getElementById?.("canvas");
-    if(!canvas)return;
-    directZoomObserver=new MutationObserver(()=>{
-      requestAnimationFrame(()=>applyDirectZoom(directZoom));
-    });
-    directZoomObserver.observe(canvas,{childList:true});
-  }catch(_){}
+  const n=Number(next);
+  directZoom=Math.max(.70,Math.min(2.00,Number.isFinite(n)?n:1));
+  directZoom=Math.round(directZoom*100)/100;
+  $("phZoomReset").textContent=`${Math.round(directZoom*100)}%`;
+  const frame=$("phFrame");
+  if(frame){
+    frame.style.transform=directZoom===1?"":`scale(${directZoom})`;
+  }
 }
 
 function scheduleDirectZoom(){
-  [0,80,250,700].forEach(ms=>setTimeout(()=>{
-    applyDirectZoom(directZoom);
-    if(ms===250) installDirectZoomObserver();
-  },ms));
+  // Applied to the iframe itself: independent of the inner hall's DOM/layout.
+  requestAnimationFrame(()=>applyDirectZoom(directZoom));
 }
 
 function directSeatElement(seat){
@@ -815,7 +830,7 @@ $("prepareBtn").addEventListener("click",()=>{
   setStatus("gatewayStatus","Спочатку оберіть сеанс Оперного театру.");
   setStatus("vaStatus","Gateway має бути ONLINE.");
   telemetry=[];$("telemetryBody").innerHTML="";
-  resetRace();resetWatch();applyDirectZoom(1.25);updateReady();
+  resetRace();resetWatch();applyDirectZoom(1);updateReady();
 });
 
 $("refreshBtn").addEventListener("click",async()=>{
@@ -834,7 +849,7 @@ $("refreshBtn").addEventListener("click",async()=>{
   }
   resetRace();
   resetWatch();
-  applyDirectZoom(1.25);
+  applyDirectZoom(1);
   updateReady();
 })().catch(e=>showMessage(String(e.message||e),true));
 
