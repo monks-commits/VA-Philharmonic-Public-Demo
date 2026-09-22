@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gateway Flight Deck V8 — Дніпровська філармонія</title>
+<title>Gateway Flight Deck V8.1 — Дніпровська філармонія</title>
 <style>
 :root{
   --bg:#0b1015;--panel:#111922;--panel2:#151f2a;--line:#283646;--text:#e8eef5;--muted:#8fa0b3;
@@ -24,20 +24,46 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
 .pathbar{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:8px;margin-top:12px;border-top:1px solid #23303c;padding-top:12px}.node{border:1px solid var(--line);border-radius:11px;background:#121b24;padding:9px 11px;text-align:center}.node strong{display:block}.node span{font-size:12px;color:var(--muted)}.arrow{color:var(--blue);font-weight:900}.ms{font-variant-numeric:tabular-nums;color:#b9daf9}
 .preflight{display:grid;grid-template-columns:1.25fr .8fr .8fr .9fr;gap:12px;margin-bottom:14px}.card{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.step{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.stepno{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#263544;color:#c9d7e6;font-weight:900}.card h2{font-size:17px;margin:0}.hint{color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}.controls{margin-top:12px;display:grid;gap:8px}.field{display:grid;gap:5px}.field label{font-size:12px;color:var(--muted);font-weight:700}.field select{width:100%;min-height:42px;border:1px solid #334657;border-radius:9px;background:#0e161e;color:var(--text);padding:8px 10px}.statusline{min-height:18px;color:var(--muted);font-size:12px;line-height:1.4}.statusline.ok{color:var(--green)}.statusline.bad{color:var(--red)}
 .workspace{border:1px solid #314257;background:#0d141c;border-radius:18px;overflow:hidden}
-.workspace-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #293846;background:#111a24}.workspace-head h2{margin:0;font-size:20px}.ready-badge{border:1px solid #3b4b5b;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:850;color:var(--muted)}.ready-badge.on{color:#8ef0b2;border-color:#288f51;background:#153622}
-.panes{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}.pane{border:1px solid #273747;border-radius:13px;background:#111922;overflow:hidden;min-width:0}.pane-head{padding:10px 12px;border-bottom:1px solid #273747;display:flex;justify-content:space-between;align-items:center;gap:8px}.pane-head b{font-size:15px}.pane-meta{font-size:11px;color:var(--muted);text-align:right}.frame-wrap{position:relative;height:650px;background:#0a0f14}.frame-wrap iframe{width:100%;height:100%;border:0;background:#fff}.frame-placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;color:var(--muted);background:#0d141c}.frame-placeholder.hidden{display:none}
+.workspace-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;border-bottom:1px solid #293846;background:#111a24;flex-wrap:wrap}.workspace-head h2{margin:0;font-size:20px}.ready-badge{border:1px solid #3b4b5b;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:850;color:var(--muted)}.ready-badge.on{color:#8ef0b2;border-color:#288f51;background:#153622}
+.panes{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px}.pane{border:1px solid #273747;border-radius:13px;background:#111922;overflow:hidden;min-width:0}.pane-head{padding:10px 12px;border-bottom:1px solid #273747;display:flex;justify-content:space-between;align-items:center;gap:8px}.pane-head b{font-size:15px}.pane-meta{font-size:11px;color:var(--muted);text-align:right}.frame-wrap{position:relative;height:clamp(720px,82vh,940px);background:#0a0f14}.frame-wrap iframe{width:100%;height:100%;border:0;background:#fff}.frame-placeholder{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:30px;color:var(--muted);background:#0d141c}.frame-placeholder.hidden{display:none}
 .race-panel{display:grid;grid-template-columns:1fr 1fr 280px;gap:10px;padding:0 10px 10px}.lane,.verdict{border:1px solid #293846;border-radius:13px;background:#0b1219;padding:12px}.lane h3,.verdict h3{margin:0 0 10px;font-size:15px}.lane-grid{display:grid;grid-template-columns:92px 1fr;gap:6px;font-size:12px}.lane-grid span{color:var(--muted)}.good{color:var(--green)}.bad{color:var(--red)}.warn{color:var(--amber)}.seat-big{font-size:20px;font-weight:900;color:#fff}.verdict-main{font-size:18px;font-weight:900;line-height:1.25;margin:8px 0}.verdict-sub{font-size:12px;color:var(--muted);line-height:1.5}
 .telemetry{margin-top:14px;border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:14px}.telemetry h2{font-size:18px;margin:0 0 10px}.tablewrap{overflow:auto;max-height:280px}table{width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap}th,td{padding:7px 8px;border-bottom:1px solid #253443;text-align:left}th{color:var(--muted);position:sticky;top:0;background:var(--panel)}
 .message{position:fixed;right:18px;bottom:18px;max-width:460px;border:1px solid #37506a;background:#132131;color:#dcecff;border-radius:12px;padding:10px 13px;display:none;z-index:500}.message.show{display:block}.message.bad{border-color:#74343a;background:#31161a;color:#ffd5d7}
-@media(max-width:1250px){.lamps{grid-template-columns:repeat(4,1fr)}.preflight{grid-template-columns:repeat(2,1fr)}.panes{grid-template-columns:1fr}.race-panel{grid-template-columns:1fr 1fr}.verdict{grid-column:1/-1}.frame-wrap{height:620px}}
-@media(max-width:700px){body{padding:8px}.lamps{grid-template-columns:repeat(2,1fr)}.preflight{grid-template-columns:1fr}.pathbar{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.race-panel{grid-template-columns:1fr}.verdict{grid-column:auto}.frame-wrap{height:70vh}.top-actions{width:100%}.top-actions .btn{flex:1}}
+@media(max-width:1250px){.lamps{grid-template-columns:repeat(4,1fr)}.preflight{grid-template-columns:repeat(2,1fr)}.panes{grid-template-columns:1fr}.race-panel{grid-template-columns:1fr 1fr}.verdict{grid-column:1/-1}.frame-wrap{height:clamp(720px,82vh,940px)}}
+@media(max-width:700px){body{padding:8px}.lamps{grid-template-columns:repeat(2,1fr)}.preflight{grid-template-columns:1fr}.pathbar{grid-template-columns:1fr}.arrow{transform:rotate(90deg);text-align:center}.race-panel{grid-template-columns:1fr}.verdict{grid-column:auto}.frame-wrap{height:clamp(700px,82vh,940px)}.top-actions{width:100%}.top-actions .btn{flex:1}}
+
+/* Flight Deck V8.1: presentation-only pane controls. No iframe reloads. */
+.workspace-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+.view-controls{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.view-controls .btn,.height-btn{font-size:12px;padding:8px 11px;min-height:37px}
+.view-controls .btn[aria-pressed="true"],.height-btn[aria-pressed="true"]{
+  background:#1b5a3a;border-color:#329f64;color:#e8fff0;
+}
+.pane-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.pane-expand{font-size:12px;padding:5px 9px;min-height:32px;white-space:nowrap}
+.workspace[data-view="va"] .panes,.workspace[data-view="ph"] .panes{
+  grid-template-columns:minmax(0,1fr);
+}
+.workspace[data-view="va"] #phPane,.workspace[data-view="ph"] #vaPane{display:none}
+.workspace[data-view="va"] .frame-wrap,.workspace[data-view="ph"] .frame-wrap{
+  height:clamp(820px,92vh,1200px);
+}
+/* Optional extra vertical space in both side-by-side and focused mode. */
+.workspace[data-tall="true"] .frame-wrap{height:clamp(1080px,118vh,1550px)}
+@media(max-width:700px){
+  .workspace-actions{width:100%;justify-content:flex-start}
+  .view-controls{width:100%}
+  .view-controls .btn{flex:1 1 auto}
+  .pane-head{align-items:flex-start;flex-wrap:wrap}
+  .pane-tools{width:100%;justify-content:space-between}
+}
 </style>
 </head>
 <body>
 <div class="deck">
   <header class="top">
     <div>
-      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8</span></h1>
+      <h1>Gateway Flight Deck <span style="font-size:13px;color:#8fa0b3">V8.1</span></h1>
       <div class="subtitle">Дніпровська філармонія • один зал • дві реальні платформи продажу • Universal Gateway</div>
     </div>
     <div class="top-actions">
@@ -99,23 +125,31 @@ h1{font-size:28px;margin:0 0 4px}.subtitle{color:var(--muted)}
     </article>
   </section>
 
-  <section class="workspace">
+  <section class="workspace" id="workspace" data-view="both" data-tall="false">
     <div class="workspace-head">
       <div><h2>Реальна перевірка • одне місце, дві платформи</h2><div class="hint">Ліворуч покупець заходить з вітрини VA. Праворуч — безпосередньо з Філармонії. Flight Deck тільки спостерігає.</div></div>
-      <div id="readyBadge" class="ready-badge">НЕ ГОТОВО</div>
+      <div class="workspace-actions">
+        <div class="view-controls" role="group" aria-label="Режим відображення робочих вікон">
+          <button type="button" id="viewBothBtn" class="btn" aria-pressed="true">Два вікна</button>
+          <button type="button" id="viewVaBtn" class="btn" aria-pressed="false">VA на всю ширину</button>
+          <button type="button" id="viewPhBtn" class="btn" aria-pressed="false">Філармонія на всю ширину</button>
+        </div>
+        <button type="button" id="heightBtn" class="btn height-btn" aria-pressed="false">Збільшити висоту</button>
+        <div id="readyBadge" class="ready-badge">НЕ ГОТОВО</div>
+      </div>
     </div>
 
     <div class="panes">
-      <section class="pane">
-        <div class="pane-head"><b>Ваш Адмін • через Gateway</b><span id="vaPaneMeta" class="pane-meta">вітрина ще не підключена</span></div>
+      <section class="pane" id="vaPane">
+        <div class="pane-head"><b>Ваш Адмін • через Gateway</b><div class="pane-tools"><span id="vaPaneMeta" class="pane-meta">вітрина ще не підключена</span><button type="button" id="vaExpandBtn" class="btn pane-expand" aria-pressed="false">⤢ Розгорнути VA</button></div></div>
         <div class="frame-wrap">
           <div id="vaPlaceholder" class="frame-placeholder">Після підключення VA тут відкриється реальна загальна вітрина «Ваш Адмін».</div>
           <iframe id="vaFrame" title="Ваш Адмін"></iframe>
         </div>
       </section>
 
-      <section class="pane">
-        <div class="pane-head"><b>Дніпровська філармонія • прямий контур</b><span id="phPaneMeta" class="pane-meta">оберіть сеанс</span></div>
+      <section class="pane" id="phPane">
+        <div class="pane-head"><b>Дніпровська філармонія • прямий контур</b><div class="pane-tools"><span id="phPaneMeta" class="pane-meta">оберіть сеанс</span><button type="button" id="phExpandBtn" class="btn pane-expand" aria-pressed="false">⤢ Розгорнути Філармонію</button></div></div>
         <div class="frame-wrap">
           <div id="phPlaceholder" class="frame-placeholder">Оберіть зал і сеанс. Тут відкриється реальна схема Філармонії.</div>
           <iframe id="phFrame" title="Дніпровська філармонія"></iframe>
@@ -184,6 +218,37 @@ const VA_CLIENT_URL = "https://fhusjlkneckbvnrdhbil.supabase.co/functions/v1/phi
 const db = window.PH_SUPABASE;
 const VENUE_ID = window.PhAuth?.config?.VENUE_ID || "filarmoniya";
 const $ = id => document.getElementById(id);
+
+// Display-only controls: keep both live iframes and their sessions in the DOM.
+// A HOLD continues to expire normally while the opposite frame is hidden.
+function setWorkspaceView(view){
+  const mode = ["both","va","ph"].includes(view) ? view : "both";
+  $("workspace").dataset.view = mode;
+  [["viewBothBtn","both"],["viewVaBtn","va"],["viewPhBtn","ph"]].forEach(([id,value])=>{
+    $(id).setAttribute("aria-pressed", String(mode===value));
+  });
+  $("vaExpandBtn").textContent = mode==="va" ? "↩ Два вікна" : "⤢ Розгорнути VA";
+  $("phExpandBtn").textContent = mode==="ph" ? "↩ Два вікна" : "⤢ Розгорнути Філармонію";
+  $("vaExpandBtn").setAttribute("aria-pressed",String(mode==="va"));
+  $("phExpandBtn").setAttribute("aria-pressed",String(mode==="ph"));
+}
+function setFrameHeight(tall){
+  $("workspace").dataset.tall = String(Boolean(tall));
+  $("heightBtn").setAttribute("aria-pressed",String(Boolean(tall)));
+  $("heightBtn").textContent = tall ? "Звичайна висота" : "Збільшити висоту";
+}
+$("viewBothBtn").addEventListener("click",()=>setWorkspaceView("both"));
+$("viewVaBtn").addEventListener("click",()=>setWorkspaceView("va"));
+$("viewPhBtn").addEventListener("click",()=>setWorkspaceView("ph"));
+$("vaExpandBtn").addEventListener("click",()=>setWorkspaceView(
+  $("workspace").dataset.view==="va" ? "both" : "va"
+));
+$("phExpandBtn").addEventListener("click",()=>setWorkspaceView(
+  $("workspace").dataset.view==="ph" ? "both" : "ph"
+));
+$("heightBtn").addEventListener("click",()=>setFrameHeight(
+  $("workspace").dataset.tall!=="true"
+));
 
 let halls = [];
 let seances = [];
