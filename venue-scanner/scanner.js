@@ -1,4 +1,5 @@
-const LS_SECRET_KEY="venue_demo_scanner_secret_v1";
+const LS_SECRET_KEY_PREFIX="venue_demo_scanner_secret_v2:";
+const LEGACY_SECRET_KEY="venue_demo_scanner_secret_v1";
 const LS_GATE_KEY_PREFIX="venue_demo_scanner_gate_v1:";
 let cfg=null,qr=null,lastQr="",lastQrAt=0,scanLocked=false,audioCtx=null;
 let venueId="",venueInfo=null;
@@ -13,6 +14,7 @@ function setStatus(kind,title,details,qrText){const b=$("statusBox");b.classList
 function params(){return new URLSearchParams(location.search)}
 function expectedSeance(){const p=params();return(p.get("seance")||p.get("seance_id")||cfg?.expectedSeanceId||"").trim()}
 function gateStorageKey(){return LS_GATE_KEY_PREFIX+(venueId||"unknown")}
+function secretStorageKey(){return LS_SECRET_KEY_PREFIX+(venueId||"unknown")}
 function fmt(v){if(!v)return"";const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleString("uk-UA")}
 
 async function loadVenue(){
@@ -43,7 +45,8 @@ async function loadConfig(){
 
   await loadVenue();
 
-  const s=localStorage.getItem(LS_SECRET_KEY)||"";
+  const s=localStorage.getItem(secretStorageKey())||
+    (venueId==="philharmonic"?localStorage.getItem(LEGACY_SECRET_KEY)||"":"");
   if(s)$("secret").value=s;
 
   const g=localStorage.getItem(gateStorageKey())||"";
@@ -64,11 +67,11 @@ async function sendToServer(qr_payload){
   if(!endpoint){setStatus("bad","Помилка","Endpoint venue-demo-scan-ticket не задано.",qr_payload);soundBad();return}
 
   if(cfg.requireSecret&&!secret){
-    setStatus("warn","Потрібен secret","Вставте VENUE_DEMO_SCANNER_SECRET і повторіть сканування.",qr_payload);
+    setStatus("warn","Потрібен secret","Вставте секрет майданчика і повторіть сканування.",qr_payload);
     soundBad();return;
   }
 
-  if(secret)localStorage.setItem(LS_SECRET_KEY,secret);
+  if(secret)localStorage.setItem(secretStorageKey(),secret);
   localStorage.setItem(gateStorageKey(),gate);
 
   const body={venue_id:venueId,qr_payload,checked_in_by:gate};
@@ -88,7 +91,7 @@ async function sendToServer(qr_payload){
   ];
 
   if(r.status===401){
-    setStatus("bad","Доступ заборонено","Невірний VENUE_DEMO_SCANNER_SECRET.",qr_payload);
+    setStatus("bad","Доступ заборонено","Невірний секрет майданчика.",qr_payload);
     soundBad();vibrateBad();return;
   }
 
@@ -166,9 +169,9 @@ async function stop(){
 }
 
 function clearSecret(){
-  localStorage.removeItem(LS_SECRET_KEY);
+  localStorage.removeItem(secretStorageKey());
   $("secret").value="";
-  setStatus("ok","Secret очищено","Вставте VENUE_DEMO_SCANNER_SECRET знову при потребі.","")
+  setStatus("ok","Secret очищено","Вставте секрет майданчика знову при потребі.","")
 }
 
 window.addEventListener("load",async()=>{
